@@ -4,7 +4,7 @@ extern crate rand;
 use rand::Rng;
 
 #[derive(Debug, Copy, Clone)]
-pub struct Vector3 {
+pub struct Vector3 {    // 用于表示三维坐标或rgb颜色
     pub x : f64,
     pub y : f64,
     pub z : f64,
@@ -66,7 +66,7 @@ impl Vector3 {
     pub fn normalize(&self) -> Vector3 {
         let len = (self.x * self.x + self.y * self.y + self.z * self.z).sqrt();
         if len == 0.0 {
-            println!("null !!! {:?}", self);
+            error!("vector to normalize is {:?}", self);
         }
         Vector3 { x : self.x / len , y : self.y / len, z : self.z / len}
     }
@@ -79,7 +79,7 @@ impl Vector3 {
         Vector3 { x : -self.x, y : -self.y, z : -self.z, }
     }
 
-    pub fn to_Int(&self) -> (u8, u8, u8) {
+    pub fn to_int(&self) -> (u8, u8, u8) {
         if !self.is_zero_vec() {
             let temp = self.normalize();
             return ( ( temp.x * 255.0 ) as u8,
@@ -100,22 +100,5 @@ impl Ray {
     pub fn new(_o : Vector3, _d : Vector3) -> Self {
         Ray { o : _o, d : _d }
     }
-}
-
-#[derive(Debug)]
-pub enum Refl_t {
-    DIFF,
-    SPEC,
-    REPR,
-}
-
-pub fn clamp(x : f64) -> f64 {
-    return if x < 0.0 {
-        0.0
-    } else if x > 1.0 {
-        1.0
-    } else {
-        x
-    };
 }
 

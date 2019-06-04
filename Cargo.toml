@@ -1,5 +1,5 @@
 [package]
-name = "smallpt"
+name = "ppm"
 version = "0.1.0"
 authors = ["PanQL <panqinglin00@163.com>"]
 edition = "2018"
