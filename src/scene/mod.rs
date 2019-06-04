@@ -1,4 +1,5 @@
 mod primitive;
+mod light;
 mod material;
 
 use std::boxed::Box;
