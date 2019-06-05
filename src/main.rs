@@ -11,16 +11,6 @@ fn main() {
 
     info!("Hello, world!");
 
-//    let mut vector: Vec<ViewPoint> = vec![];
-//    let mut tree = KdTree::new();
-//    vector.push(ViewPoint::new(
-//        Vector3::new(0.0, 0.0, 0.0),
-//        Vector3::new(0.0, 0.0, 0.0),
-//        Vector3::new(0.0, 0.0, 0.0),
-//        0,0,
-//        Color::default(),
-//    ));
-//    tree.build(&mut vector, 0);
     let mut scene = Scene::new();
     scene.init();
     let mut camera = Camera::new(scene);
