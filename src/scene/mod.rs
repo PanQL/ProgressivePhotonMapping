@@ -47,16 +47,16 @@ impl Scene {
             250000.0, 
             Material::new(Vector3::new(1.0, 0.0, 0.0), 0.0, 0.0, 0.0)
         )));
-        self.objects.push(Box::new(Sphere::new(
-            1500.0,
-            Vector3::new(800.0, 7000.0, 2000.0), 
-            Material::new(Vector3::new(0.1, 0.4, 0.3), 1.0, 0.0, 0.0)
-        )));
-        self.objects.push(Box::new(Sphere::new(
-            1000.0,
-            Vector3::new(500.0, 5000.0, 6000.0), 
-            Material::new(Vector3::new(0.0, 1.0, 0.0), 0.0, 1.0, 0.0)
-        )));
+//        self.objects.push(Box::new(Sphere::new(
+//            1500.0,
+//            Vector3::new(800.0, 7000.0, 2000.0),
+//            Material::new(Vector3::new(0.1, 0.4, 0.3), 1.0, 0.0, 0.0)
+//        )));
+//        self.objects.push(Box::new(Sphere::new(
+//            1000.0,
+//            Vector3::new(500.0, 5000.0, 6000.0),
+//            Material::new(Vector3::new(0.0, 1.0, 0.0), 0.0, 1.0, 0.0)
+//        )));
     }
 
     // 求给定射线在场景中的碰撞点
@@ -72,5 +72,10 @@ impl Scene {
             }
         }
         *t < inf
+    }
+
+    // first pass : ray tracing from eyes
+    pub fn trace_ray(&mut self, ray: &Ray) {
+        // TODO learn from smallpt radiance
     }
 }

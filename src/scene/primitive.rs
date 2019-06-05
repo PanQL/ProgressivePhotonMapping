@@ -113,7 +113,7 @@ impl Primitive for Plane {
     
     fn cal_specular_reflection(&self, pos : &Vector3, dir : &Vector3) -> Option<Vector3> {
         if self.material.is_specular() {
-            let mut normal_vec = self.get_normal_vec(pos);    // 根据物体形状信息获得在该点的法向量
+            let normal_vec = self.get_normal_vec(pos);    // 根据物体形状信息获得在该点的法向量
             return self.material
                        .cal_specular_ray(dir, &normal_vec);  // 最终将法向量以及射入射线委托material进行计算，即根据材质计算漫反射结果。
         }
