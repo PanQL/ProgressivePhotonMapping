@@ -14,9 +14,9 @@ pub struct ViewPoint {
     // normal vector
     pub dire: Vector3,
     // ray direction
-    x: usize,
-    y: usize,
-    color: Color,
+    pub x: usize,
+    pub y: usize,
+    pub color: Color,
     radius: f64,
     // current photon radius
     count: u32,

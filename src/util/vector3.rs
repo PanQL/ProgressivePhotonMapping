@@ -4,7 +4,7 @@ extern crate rand;
 
 use rand::Rng;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct Vector3 {
     // use for 3D position
     pub x: f64,

@@ -51,22 +51,19 @@ impl Camera {
                 for sy in 0..2 {
                     for sx in 0..2 {
                         let mut res = Vector3::new(0.0, 0.0, 0.0);
-                        for s in 0..10 {
-                            let r1: f64 = rand::thread_rng().gen_range(0.0, 2.0);
-                            let dx = if r1 < 1.0 { r1.sqrt() - 1.0 } else { 1.0 - (2.0 - r1).sqrt() };
-                            let r2: f64 = rand::thread_rng().gen_range(0.0, 2.0);
-                            let dy = if r2 < 1.0 { r2.sqrt() - 1.0 } else { 1.0 - (2.0 - r2).sqrt() };
-                            let d = cx.mult((i as f64 + (sx as f64 + 0.5 + dx) / 2.0) / self.width as f64 - 0.5)
-                                + cy.mult((j as f64 + (sy as f64 + 0.5 + dy) / 2.0) / self.height as f64 - 0.5) + self.direction;
-                            let ray = Ray {
-                                o: self.position + d.mult(100.0),
-                                d: d.normalize(),
-                            };
-                            // TODO add scene.ray_tracing func here
-                        }
+                        let r1: f64 = rand::thread_rng().gen_range(0.0, 2.0);
+                        let dx = if r1 < 1.0 { r1.sqrt() - 1.0 } else { 1.0 - (2.0 - r1).sqrt() };
+                        let r2: f64 = rand::thread_rng().gen_range(0.0, 2.0);
+                        let dy = if r2 < 1.0 { r2.sqrt() - 1.0 } else { 1.0 - (2.0 - r2).sqrt() };
+                        let d = cx.mult((i as f64 + (sx as f64 + 0.5 + dx) / 2.0) / self.width as f64 - 0.5)
+                            + cy.mult((j as f64 + (sy as f64 + 0.5 + dy) / 2.0) / self.height as f64 - 0.5) + self.direction;
+                        let ray = Ray {
+                            o: self.position + d.mult(100.0),
+                            d: d.normalize(),
+                        };
+                        self.scene.trace_ray(&ray, j, i);
                     }
                 }
-                info!(" line : {}, col : {}", i, j);
             }
         }
     }
@@ -75,9 +72,11 @@ impl Camera {
         let buffer: &mut [u8] = &mut [0; 1024 * 768 * 3];
 
         self.ray_tracing();
+        self.scene.build_view_tree();
         for _ in 0..times {
             // TODO to run a photon tracing func here
         }
+        self.scene.draw_picture(&mut self.picture);
 
         //将结果写入png
         for i in 0..self.width {
@@ -88,6 +87,6 @@ impl Camera {
                 buffer[(j * self.width + i) * 3 + 2] = b;
             }
         }
-        image::save_buffer("result.png", buffer, 1024, 768, image::RGB(32)).unwrap()
+        image::save_buffer("result.png", buffer, 1024, 768, image::RGB(8)).unwrap()
     }
 }

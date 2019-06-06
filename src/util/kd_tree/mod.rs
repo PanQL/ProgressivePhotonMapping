@@ -68,4 +68,15 @@ impl KdTree {
     }
 
     pub fn walk_photon(&mut self, photon: &Photon) {}
+
+    pub fn setup_pixel(&mut self, pic: &mut Vec<Color>) {
+        let point = self.value.as_ref().unwrap();
+        pic[point.x * 1024 + point.y] = pic[point.x * 1024 + point.y] + point.color;
+        if let Some(mut left) = self.left.as_mut() {
+            left.setup_pixel(pic);
+        }
+        if let Some(mut right) = self.right.as_mut() {
+            right.setup_pixel(pic);
+        }
+    }
 }
