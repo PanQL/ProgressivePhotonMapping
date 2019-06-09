@@ -67,15 +67,27 @@ impl KdTree {
         return true;
     }
 
-    pub fn walk_photon(&mut self, photon: &Photon) {}
+    pub fn walk_photon(&mut self, photon: &Vector3, strength : f64) {
+        let mut point = self.value.as_mut().unwrap();
+        if point.influenced(photon) {
+            point.strength += strength;
+        }
+        if let Some(left) = self.left.as_mut() {
+            left.walk_photon(photon, strength);
+        }
+        if let Some(right) = self.right.as_mut() {
+            right.walk_photon(photon, strength);
+        }
+    }
 
     pub fn setup_pixel(&mut self, pic: &mut Vec<Color>) {
         let point = self.value.as_ref().unwrap();
-        pic[point.x * 1024 + point.y] = pic[point.x * 1024 + point.y] + point.color;
-        if let Some(mut left) = self.left.as_mut() {
+        // TODO 计算的是落在视点半径范围内的光子的平均色彩。
+        pic[point.x * 1024 + point.y] = pic[point.x * 1024 + point.y] + point.color.mult(point.strength);
+        if let Some(left) = self.left.as_mut() {
             left.setup_pixel(pic);
         }
-        if let Some(mut right) = self.right.as_mut() {
+        if let Some(right) = self.right.as_mut() {
             right.setup_pixel(pic);
         }
     }

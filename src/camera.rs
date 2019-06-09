@@ -61,7 +61,7 @@ impl Camera {
                             o: self.position + d.mult(100.0),
                             d: d.normalize(),
                         };
-                        self.scene.trace_ray(&ray, j, i);
+                        self.scene.trace_ray(&ray, j, i, 1.0);
                     }
                 }
             }
@@ -71,10 +71,17 @@ impl Camera {
     pub fn run(&mut self, times: usize) {
         let buffer: &mut [u8] = &mut [0; 1024 * 768 * 3];
 
-        self.ray_tracing();
-        self.scene.build_view_tree();
-        for _ in 0..times {
+        self.ray_tracing(); // 从眼睛发射光线
+        self.scene.build_view_tree();   // 构造视点树
+        for i in 0..times {
             // TODO to run a photon tracing func here
+            let mut photon = Photon { 
+                ray : Ray { o : Vector3::new(9000.0, 9000.0, 9000.0), d : Vector3::random(), }, 
+                radius : 0.0, 
+                color : Color::default(), 
+                strength : 1.0};
+            self.scene.photon_tracing(&mut photon);
+            info!("{} photons", i);
         }
         self.scene.draw_picture(&mut self.picture);
 
