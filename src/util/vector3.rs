@@ -3,7 +3,6 @@ use std::ops::*;
 extern crate rand;
 
 use rand::Rng;
-use rand::prelude::*;
 
 #[derive(Debug, Copy, Clone, Default)]
 pub struct Vector3 {
@@ -48,9 +47,9 @@ impl Div for Vector3 {
 impl Vector3 {
     pub fn random() -> Self {   // generate a vec randomly
         Vector3 {
-            x: rand::thread_rng().gen_range(-100.0, 100.0),
-            y: rand::thread_rng().gen_range(-100.0, 100.0),
-            z: rand::thread_rng().gen_range(-100.0, 100.0),
+            x: rand::thread_rng().gen_range(-10.0, 10.0),
+            y: rand::thread_rng().gen_range(-10.0, 10.0),
+            z: rand::thread_rng().gen_range(-10.0, 10.0),
         }.normalize()
     }
 

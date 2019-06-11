@@ -20,18 +20,16 @@ impl Material {
      * ray_x : 入射的射线
      * ray_n : 法向量
      */
-     pub fn cal_diffuse_ray(&self, vec_x : &Vector3, vec_n : &Vector3) -> Option<Vector3> {
-         if self.diffuse > EPS {
-             return Some(Vector3::random());
-         }
-         None
-     }
+     //pub fn cal_diffuse_ray(&self, vec_x : &Vector3, vec_n : &Vector3) -> Option<Vector3> {
+         //if self.diffuse > EPS {
+             //return Some(Vector3::random());
+         //}
+         //None
+     //}
 
-    /*
-     * 计算镜面反射的单位方向
-     * ray_x : 入射的射线
-     * ray_n : 法向量
-     */
+     //计算镜面反射的单位方向
+     //ray_x : 入射的射线
+     //ray_n : 法向量
      pub fn cal_specular_ray(&self, vec_x : &Vector3, vec_n : &Vector3) -> Option<Vector3> {
          if self.specular > EPS {
              if vec_x.dot(vec_n) < 0.0 {
@@ -43,15 +41,13 @@ impl Material {
          None
      }
 
-    /*
-     * 计算折射的单位方向
-     * ray_x : 入射的射线
-     * ray_n : 法向量
-     */
-    pub fn cal_refractive_ray(&self, vec_x: &Vector3, vec_n: &Vector3) -> Option<Vector3> {
-        if self.refraction > EPS {}
-        None
-    }
+     //计算折射的单位方向
+     //ray_x : 入射的射线
+     //ray_n : 法向量
+    //pub fn cal_refractive_ray(&self, vec_x: &Vector3, vec_n: &Vector3) -> Option<Vector3> {
+        //if self.refraction > EPS {}
+        //None
+    //}
 
     pub fn is_diffuse(&self) -> bool {
         self.diffuse > EPS
@@ -59,5 +55,20 @@ impl Material {
 
     pub fn is_specular(&self) -> bool {
         self.specular > EPS
+    }
+    
+    pub fn brdf(&self, ray_R : &Vector3, vec_n : &Vector3, ray_I : &Vector3) -> f64 {
+        let mut ret = 0.0;
+        let p = ray_R.dot(ray_I);
+        if self.diffuse > EPS && p > EPS{ // 存在漫反射分量
+            ret += self.diffuse * p;
+        }
+        if let Some(refl) = self.cal_specular_ray(&ray_I.mult(-1.0), vec_n) {   // 存在镜面反射
+            let projection = refl.dot(ray_R);
+            if projection > EPS {
+                ret += self.specular * projection.powi(10);
+            }
+        }
+        ret
     }
 }

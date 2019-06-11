@@ -14,6 +14,7 @@ pub struct Camera {
     width: usize,
     height: usize,
     scene: Scene,
+    hit_point_map : KdTree,
 }
 
 impl Camera {
@@ -25,6 +26,7 @@ impl Camera {
             width: 0,
             height: 0,
             scene,
+            hit_point_map : KdTree::new(),
         }
     }
 
@@ -42,7 +44,7 @@ impl Camera {
         self.direction = direction;
     }
 
-    // only need to do once
+    // 视线投射
     fn ray_tracing(&mut self) {
         let cx = Vector3::new(0.0, self.width as f64 / self.height as f64, 0.0);
         let cy = Vector3::new(0.0, 0.0, -1.0);
@@ -50,7 +52,6 @@ impl Camera {
             for i in 0..self.width {
                 for sy in 0..2 {
                     for sx in 0..2 {
-                        let mut res = Vector3::new(0.0, 0.0, 0.0);
                         let r1: f64 = rand::thread_rng().gen_range(0.0, 2.0);
                         let dx = if r1 < 1.0 { r1.sqrt() - 1.0 } else { 1.0 - (2.0 - r1).sqrt() };
                         let r2: f64 = rand::thread_rng().gen_range(0.0, 2.0);
@@ -72,18 +73,12 @@ impl Camera {
         let buffer: &mut [u8] = &mut [0; 1024 * 768 * 3];
 
         self.ray_tracing(); // 从眼睛发射光线
-        self.scene.build_view_tree();   // 构造视点树
+        self.hit_point_map.build(self.scene.get_hit_points(), 0); // 构建视点树
         for i in 0..times {
-            // TODO to run a photon tracing func here
-            let mut photon = Photon { 
-                ray : Ray { o : Vector3::new(9000.0, 9000.0, 9000.0), d : Vector3::random(), }, 
-                radius : 0.0, 
-                color : Color::default(), 
-                strength : 1.0};
-            self.scene.photon_tracing(&mut photon);
-            info!("{} photons", i);
+            self.scene.pm_round(&mut self.hit_point_map);
+            info!("{} rounds", i);
         }
-        self.scene.draw_picture(&mut self.picture);
+        self.hit_point_map.setup_pixel(&mut self.picture, self.width);
 
         //将结果写入png
         for i in 0..self.width {
@@ -94,6 +89,6 @@ impl Camera {
                 buffer[(j * self.width + i) * 3 + 2] = b;
             }
         }
-        image::save_buffer("result.png", buffer, 1024, 768, image::RGB(8)).unwrap()
+        image::save_buffer("result.png", buffer, self.width as u32, self.height as u32, image::RGB(8)).unwrap()
     }
 }

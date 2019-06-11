@@ -11,11 +11,12 @@ pub struct KdTree {
     split: usize,
     value: Option<ViewPoint>,
     capacity: usize,
+    photon_number : u32,
 }
 
 impl KdTree {
     pub fn new() -> Self {
-        KdTree { left: None, right: None, split: 0, value: None, capacity: 1 }
+        KdTree { left: None, right: None, split: 0, value: None, capacity: 1, photon_number: 0 }
     }
 
     pub fn build(&mut self, values: &mut Vec<ViewPoint>, split: usize) -> bool {
@@ -67,28 +68,39 @@ impl KdTree {
         return true;
     }
 
-    pub fn walk_photon(&mut self, photon: &Vector3, strength : f64) {
-        let mut point = self.value.as_mut().unwrap();
-        if point.influenced(photon) {
-            point.strength += strength;
+    pub fn walk_photon(&mut self, photon: &Photon) {
+        let point = self.value.as_mut().unwrap();
+        if point.influenced(photon) {   // 统计光子的通量和数目
+            point.flux_color += photon.power; // TODO 过于粗糙的估计
+            self.photon_number += 1;
         }
         if let Some(left) = self.left.as_mut() {
-            left.walk_photon(photon, strength);
+            left.walk_photon(photon);
         }
         if let Some(right) = self.right.as_mut() {
-            right.walk_photon(photon, strength);
+            right.walk_photon(photon);
         }
     }
 
-    pub fn setup_pixel(&mut self, pic: &mut Vec<Color>) {
+    pub fn setup_pixel(&mut self, pic: &mut Vec<Color>, width : usize) {
         let point = self.value.as_ref().unwrap();
         // TODO 计算的是落在视点半径范围内的光子的平均色彩。
-        pic[point.x * 1024 + point.y] = pic[point.x * 1024 + point.y] + point.color.mult(point.strength);
+        pic[point.x * width + point.y] = pic[point.x * width + point.y] + point.flux_color * point.color; //TODO !!!
         if let Some(left) = self.left.as_mut() {
-            left.setup_pixel(pic);
+            left.setup_pixel(pic, width);
         }
         if let Some(right) = self.right.as_mut() {
-            right.setup_pixel(pic);
+            right.setup_pixel(pic, width);
+        }
+    }
+
+    pub fn renew(&mut self) {
+        self.photon_number = 0;
+        if let Some(left) = self.left.as_mut() {
+            left.renew();
+        }
+        if let Some(right) = self.right.as_mut() {
+            right.renew();
         }
     }
 }

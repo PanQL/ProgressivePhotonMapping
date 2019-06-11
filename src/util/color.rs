@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::ops::{ Add, AddAssign, Mul };
 
 #[derive(Clone, Default, Debug, Copy)]
 pub struct Color {
@@ -47,3 +47,20 @@ impl Add for Color {
     }
 }
 
+impl AddAssign for Color {
+    fn add_assign(&mut self, other: Color) {
+        *self = Color {
+            r: self.r + other.r,
+            g: self.g + other.g,
+            b: self.b + other.b,
+        };
+    }
+}
+
+impl Mul for Color {
+    type Output = Color;
+
+    fn mul(self, other: Color) -> Color {
+        Color { r: self.r * other.r, g: self.g * other.g, b: self.b * other.b }
+    }
+}
