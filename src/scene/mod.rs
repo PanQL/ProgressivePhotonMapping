@@ -39,7 +39,7 @@ impl Scene {
         self.objects.push(Box::new(Plane::new(   // Top
             Vector3::new(0.0, 0.0, 1.0),
             10000.0,
-            Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 0.0, 0.0, 0.0, 0.0))
+            Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 1.0, 0.0, 0.0, 0.0))
         )));
         self.objects.push(Box::new(Plane::new(  //Back
             Vector3::new(1.0, 0.0, 0.0),
@@ -49,17 +49,20 @@ impl Scene {
         self.objects.push(Box::new(Plane::new(   // Front
             Vector3::new(1.0, 0.0, 0.0),
             20000.0,
-            Arc::new(Material::new(Color::new(0.0, 0.0, 0.0), 0.0, 0.0, 0.0, 0.0))
+            Arc::new(Material::new(Color::new(0.5, 0.0, 0.0), 1.0, 0.0, 0.0, 0.0))
         )));
         self.objects.push(Box::new(Sphere::new(
             2000.0,
-            Vector3::new(500.0, 5000.0, 2200.0),
-            Arc::new(Material::new(Color::new(0.0, 1.0, 0.0), 0.0, 1.0, 0.0, 0.0)),
+            Vector3::new(5000.0, 5000.0, 4200.0),
+            Arc::new(Material::new(Color::new(0.0, 0.0, 0.0), 5.0, 5.0, 0.0, 0.0)),
         )));
         // 设置光源
         self.illumiants.push(Box::new(DotLight::new(
-            Vector3::new(9000.0, 9000.0, 9000.0), 10000
+            Vector3::new(2000.0, 1100.0, 9000.0), 100
         )));
+        //self.illumiants.push(Box::new(DotLight::new(
+            //Vector3::new(18000.0, 1100.0, 9000.0), 100
+        //)));
     }
 
     // 求给定射线在场景中的碰撞点
@@ -89,14 +92,31 @@ impl Scene {
         if !self.intersect(ray, &mut t, &mut id) { // 射线与任何物体都没有相交，递归终止
             return;
         }
+
         let x = ray.o + ray.d.mult(t);  // 得到交点所在位置
         let color = self.objects[id].get_color();   // 获取物体的颜色
         let n = self.objects[id].get_normal_vec(&x);
         let material = self.objects[id].get_material();
 
-        self.points.push(
-            ViewPoint::new(x, ray.d.mult(-1.0), n, pixel_x, pixel_y, color, material)
-        );
+        // TODO 判断权重太小的话，就不再递归？
+        if material.is_diffuse() {  // 漫反射属性
+            let vec_n = if n.dot(&ray.d) > 0.0 {    // 这里需要的是和视线夹角为钝角的法向量
+                n.mult(-1.0)
+            } else {
+                n
+            };
+            self.points.push(
+                ViewPoint::new(x, ray.d.mult(-1.0), vec_n, pixel_x, pixel_y, color, material.clone(), weight * material.diffuse)
+            );
+        }
+        if material.is_specular() { // 镜面反射属性
+            let spec_ray = Ray::new(
+                x,
+                material.cal_specular_ray(&ray.d, &n).unwrap()
+            );
+
+            self.trace_ray(&spec_ray, pixel_x, pixel_y, weight * material.specular);
+        }
     }
 
     fn photon_tracing(&self, photon : &mut Photon, tree : &mut KdTree) {
@@ -105,13 +125,15 @@ impl Scene {
         if !self.intersect(&photon.ray, &mut t, &mut id) { // 光子与任何物体都没有碰撞，递归终止
             return;
         }
-        photon.ray.o = photon.ray.o + photon.ray.d.mult(t);  // 得到交点所在位置
+        photon.ray.o = photon.ray.o + photon.ray.d.mult(t);  // 位置设置为交点所在位置
+        photon.ray.d = photon.ray.d.mult(-1.0); // 方向设置为指向光源的方向
         tree.walk_photon(photon);
     }
 
-    pub fn pm_round(&mut self, tree : &mut KdTree) {
+    pub fn pm_round(&mut self, tree : &mut KdTree, p_num : u32) {
         let length = self.illumiants.len();
         for idx in 0..length {
+            self.illumiants[idx].set_photon_num(p_num);
             while let Some(mut photon) = self.illumiants[idx].gen_photon() {
                 self.photon_tracing(&mut photon, tree);
             }

@@ -84,5 +84,14 @@ impl Vector3 {
     pub fn distance(&self, other : &Vector3) -> f64 {
         ((self.x - other.x).powi(2) + (self.y - other.y).powi(2) + (self.z - other.z).powi(2)).sqrt()
     }
+
+    pub fn by_coordiante(&self, coord : usize) -> f64 {
+        return match coord {
+            0 => self.x,
+            1 => self.y,
+            2 => self.z,
+            _ => unimplemented!()
+        }
+    }
 }
 

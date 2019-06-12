@@ -1,6 +1,5 @@
 use super::*;
-
-const EPS : f64 = 1e-10;    // 参数不为0的阈值
+use crate::consts::EPS;
 
 pub struct Material {
     pub color: Color,
@@ -57,14 +56,14 @@ impl Material {
         self.specular > EPS
     }
     
-    pub fn brdf(&self, ray_R : &Vector3, vec_n : &Vector3, ray_I : &Vector3) -> f64 {
+    pub fn brdf(&self, ray_r : &Vector3, vec_n : &Vector3, ray_i : &Vector3) -> f64 {
         let mut ret = 0.0;
-        let p = ray_R.dot(ray_I);
-        if self.diffuse > EPS && p > EPS{ // 存在漫反射分量
+        let p = ray_r.dot(vec_n);
+        if self.is_diffuse() && p > EPS{ // 存在漫反射分量
             ret += self.diffuse * p;
         }
-        if let Some(refl) = self.cal_specular_ray(&ray_I.mult(-1.0), vec_n) {   // 存在镜面反射
-            let projection = refl.dot(ray_R);
+        if let Some(refl) = self.cal_specular_ray(&ray_i.mult(-1.0), vec_n) {   // 存在镜面反射
+            let projection = refl.dot(ray_r);
             if projection > EPS {
                 ret += self.specular * projection.powi(10);
             }

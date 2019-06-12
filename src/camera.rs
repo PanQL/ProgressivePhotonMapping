@@ -70,25 +70,32 @@ impl Camera {
     }
 
     pub fn run(&mut self, times: usize) {
-        let buffer: &mut [u8] = &mut [0; 1024 * 768 * 3];
+        let buffer: &mut [u16] = &mut [0; 1024 * 768 * 3];
 
+        let mut total_photon : f64 = 0.0;
         self.ray_tracing(); // 从眼睛发射光线
         self.hit_point_map.build(self.scene.get_hit_points(), 0); // 构建视点树
         for i in 0..times {
-            self.scene.pm_round(&mut self.hit_point_map);
+            self.scene.pm_round(&mut self.hit_point_map, 10_0000);
+            total_photon += 100000.0;
+            self.hit_point_map.renew();
             info!("{} rounds", i);
         }
-        self.hit_point_map.setup_pixel(&mut self.picture, self.width);
+        self.hit_point_map.setup_pixel(&mut self.picture, self.width, total_photon);
 
         //将结果写入png
         for i in 0..self.width {
             for j in 0..self.height {
-                let (r, g, b) = self.picture[j * self.width + i].to_int();
+                let (r, g, b) = self.picture[j * self.width + i].to_u16();
                 buffer[(j * self.width + i) * 3] = r;
                 buffer[(j * self.width + i) * 3 + 1] = g;
                 buffer[(j * self.width + i) * 3 + 2] = b;
             }
         }
-        image::save_buffer("result.png", buffer, self.width as u32, self.height as u32, image::RGB(8)).unwrap()
+        unsafe {
+            image::save_buffer("result.png", 
+                               std::slice::from_raw_parts_mut(buffer.as_mut_ptr() as *mut u8, buffer.len() * 2),
+                               self.width as u32, self.height as u32, image::RGB(16)).unwrap()
+        }
     }
 }
