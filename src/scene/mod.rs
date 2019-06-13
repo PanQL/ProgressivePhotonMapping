@@ -11,13 +11,12 @@ use self::light::*;
 
 pub struct Scene {
     objects : Vec<Box<dyn Primitive>>,  // 代表场景中的各个物体
-    illumiants : Vec<Box<dyn Light>>,   // 代表场景中的各个光源
-    points: Vec<ViewPoint>,
+    illumiants : Vec<Arc<Light>>,   // 代表场景中的各个光源
 }
 
 impl Scene {
     pub fn new() -> Self {
-        Scene { objects: Vec::new(), illumiants : Vec::new(), points: Vec::new() }
+        Scene { objects: Vec::new(), illumiants : Vec::new() }
     }
 
     pub fn init(&mut self) {
@@ -43,7 +42,7 @@ impl Scene {
         )));
         self.objects.push(Box::new(Plane::new(  //Back
             Vector3::new(1.0, 0.0, 0.0),
-            100.0,
+            -3000.0,
             Arc::new(Material::new(Color::new(0.5, 0.0, 0.0), 1.0, 0.0, 0.0, 0.0))
         )));
         self.objects.push(Box::new(Plane::new(   // Front
@@ -54,11 +53,11 @@ impl Scene {
         self.objects.push(Box::new(Sphere::new(
             2000.0,
             Vector3::new(5000.0, 5000.0, 4200.0),
-            Arc::new(Material::new(Color::new(0.0, 0.0, 0.0), 5.0, 5.0, 0.0, 0.0)),
+            Arc::new(Material::new(Color::new(0.0, 0.0, 0.0), 0.0, 1.0, 0.0, 0.0)),
         )));
         // 设置光源
-        self.illumiants.push(Box::new(DotLight::new(
-            Vector3::new(2000.0, 1100.0, 9000.0), 100
+        self.illumiants.push(Arc::new(DotLight::new(
+            Vector3::new(19000.0, 1100.0, 9000.0)
         )));
         //self.illumiants.push(Box::new(DotLight::new(
             //Vector3::new(18000.0, 1100.0, 9000.0), 100
@@ -66,82 +65,37 @@ impl Scene {
     }
 
     // 求给定射线在场景中的碰撞点
-    fn intersect(&self, r : &Ray, t : &mut f64, id : &mut usize) -> bool {
+    pub fn intersect(&self, ray : &Ray) -> Option<Collider> {
         let inf : f64 = 1e20;
-        *t = 1e20;
+        let mut t : f64 = 1e20;
+        let mut id : usize = 0;
         for i in 0..self.objects.len() {
-            if let Some(d) = self.objects[i].intersect(r) {
-                if d < *t {
-                    *t = d;
-                    *id = i;
+            if let Some(d) = self.objects[i].intersect(ray) {
+                if d < t {
+                    t = d;
+                    id = i;
                 }
             }
         }
-        *t < inf
-    }
-
-    // 光线追踪阶段
-    /*
-     * ray : 要追踪的射线
-     * pixel_x , pixel_y : 对应像素在图片中的位置
-     * weight : 该点在整个像素的显示中占据的比重
-     */
-    pub fn trace_ray(&mut self, ray: &Ray, pixel_x: usize, pixel_y: usize, weight : f64) {
-        let mut id: usize = 0; // 用于存放发生碰撞的物体的编号
-        let mut t: f64 = 0.0; // 用于存放相交点到光线原点的距离
-        if !self.intersect(ray, &mut t, &mut id) { // 射线与任何物体都没有相交，递归终止
-            return;
-        }
-
-        let x = ray.o + ray.d.mult(t);  // 得到交点所在位置
-        let color = self.objects[id].get_color();   // 获取物体的颜色
-        let n = self.objects[id].get_normal_vec(&x);
-        let material = self.objects[id].get_material();
-
-        // TODO 判断权重太小的话，就不再递归？
-        if material.is_diffuse() {  // 漫反射属性
-            let vec_n = if n.dot(&ray.d) > 0.0 {    // 这里需要的是和视线夹角为钝角的法向量
-                n.mult(-1.0)
-            } else {
-                n
-            };
-            self.points.push(
-                ViewPoint::new(x, ray.d.mult(-1.0), vec_n, pixel_x, pixel_y, color, material.clone(), weight * material.diffuse)
-            );
-        }
-        if material.is_specular() { // 镜面反射属性
-            let spec_ray = Ray::new(
-                x,
-                material.cal_specular_ray(&ray.d, &n).unwrap()
-            );
-
-            self.trace_ray(&spec_ray, pixel_x, pixel_y, weight * material.specular);
+        if t < inf {
+            let position =ray.o + ray.d.mult(t); 
+            return Some(Collider {
+                pos : position,
+                material : self.objects[id].get_material(),
+                norm_vec : self.objects[id].get_normal_vec(&position),
+                distance : t,
+                in_direction : ray.d,
+            });
+        } else {
+            return None;
         }
     }
 
-    fn photon_tracing(&self, photon : &mut Photon, tree : &mut KdTree) {
-        let mut id: usize = 0; // 用于存放发生碰撞的物体的编号
-        let mut t: f64 = 0.0; // 用于存放相交点到光线原点的距离
-        if !self.intersect(&photon.ray, &mut t, &mut id) { // 光子与任何物体都没有碰撞，递归终止
-            return;
-        }
-        photon.ray.o = photon.ray.o + photon.ray.d.mult(t);  // 位置设置为交点所在位置
-        photon.ray.d = photon.ray.d.mult(-1.0); // 方向设置为指向光源的方向
-        tree.walk_photon(photon);
+    pub fn get_light_num(&self) -> usize {
+        self.illumiants.len()
     }
 
-    pub fn pm_round(&mut self, tree : &mut KdTree, p_num : u32) {
-        let length = self.illumiants.len();
-        for idx in 0..length {
-            self.illumiants[idx].set_photon_num(p_num);
-            while let Some(mut photon) = self.illumiants[idx].gen_photon() {
-                self.photon_tracing(&mut photon, tree);
-            }
-        }
-    }
-
-    // 获取所有视点，用于构建视点树
-    pub fn get_hit_points(&mut self) -> &mut Vec<ViewPoint> {
-        &mut self.points
+    pub fn get_light(&self, idx : usize) -> Arc<Light> {
+        self.illumiants[idx].clone()
     }
 }

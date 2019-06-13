@@ -56,6 +56,10 @@ impl Color {
         (0u16, 0u16, 0u16)
     }
 
+    pub fn power(&self) -> f64 {
+        (self.r + self.g + self.b) / 3.0
+    }
+
 }
 
 impl Add for Color {

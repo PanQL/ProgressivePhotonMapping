@@ -5,4 +5,5 @@ extern crate env_logger;
 pub mod util;
 pub mod scene;
 pub mod camera;
-pub mod consts;
+mod consts;
+pub mod core;

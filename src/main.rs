@@ -5,6 +5,7 @@ use env_logger::Env;
 use ppm::util::*;
 use ppm::camera::Camera;
 use ppm::scene::Scene;
+use ppm::core::ProgressivePhotonTracer;
 
 fn main() {
     env_logger::from_env(Env::default().default_filter_or("ppm")).init();
@@ -13,9 +14,10 @@ fn main() {
 
     let mut scene = Scene::new();
     scene.init();
-    let mut camera = Camera::new(scene);
+    let mut camera = Camera::new();
     camera.set_size(1024, 768);
-    camera.set_pos(&Vector3::new(20000.0, 5000.0, 5000.0));
+    camera.set_pos(&Vector3::new(18000.0, 5000.0, 5000.0));
     camera.set_dir(Vector3::new(-1.0, 0.0, 0.0));
-    camera.run(30);
+    let mut ppm = ProgressivePhotonTracer::new(camera, scene); 
+    ppm.run(10);
 }
