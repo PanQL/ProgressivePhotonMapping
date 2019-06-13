@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::ops::{ Add, AddAssign, Mul };
 
 #[derive(Clone, Default, Debug, Copy)]
 pub struct Color {
@@ -34,9 +34,32 @@ impl Color {
         (0u8, 0u8, 0u8)
     }
 
-    pub fn mult(&self, num: f64) -> Color {
-        Color { r: self.r * num, g: self.g * num, b: self.b * num }
+    pub fn mult(&self, b: f64) -> Color {    // multi a number on this vec
+        Color { r: self.r * b, g: self.g * b, b: self.b * b }
     }
+
+    pub fn div(&self, b: f64) -> Color {    // multi a number on this vec
+        if b < 1e-10 { 
+            error!("color div a zero !");
+            return Color::default(); 
+        }
+        Color { r: self.r / b, g: self.g / b, b: self.b / b }
+    }
+
+    pub fn to_u16(&self) -> (u16, u16, u16) {
+        if !self.is_zero_vec() {
+            let temp = self.normalize();
+            return ((temp.r * 65535.0) as u16,
+                    (temp.g * 65535.0) as u16,
+                    (temp.b * 65535.0) as u16);
+        }
+        (0u16, 0u16, 0u16)
+    }
+
+    pub fn power(&self) -> f64 {
+        (self.r + self.g + self.b) / 3.0
+    }
+
 }
 
 impl Add for Color {
@@ -47,3 +70,20 @@ impl Add for Color {
     }
 }
 
+impl AddAssign for Color {
+    fn add_assign(&mut self, other: Color) {
+        *self = Color {
+            r: self.r + other.r,
+            g: self.g + other.g,
+            b: self.b + other.b,
+        };
+    }
+}
+
+impl Mul for Color {
+    type Output = Color;
+
+    fn mul(self, other: Color) -> Color {
+        Color { r: self.r * other.r, g: self.g * other.g, b: self.b * other.b }
+    }
+}

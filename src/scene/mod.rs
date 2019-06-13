@@ -1,81 +1,101 @@
 mod primitive;
 mod light;
-mod material;
+pub mod material;
 
 use std::boxed::Box;
+use std::sync::Arc;
 pub use super::util::*;
 use self::primitive::*;
 use self::material::Material;
+use self::light::*;
 
 pub struct Scene {
     objects : Vec<Box<dyn Primitive>>,  // 代表场景中的各个物体
+    illumiants : Vec<Arc<Light>>,   // 代表场景中的各个光源
 }
 
 impl Scene {
     pub fn new() -> Self {
-        Scene { objects : Vec::new() , }
+        Scene { objects: Vec::new(), illumiants : Vec::new() }
     }
 
     pub fn init(&mut self) {
         self.objects.push(Box::new(Plane::new(   //Left
-            Vector3::new(0.0, 1.0, 0.0), 
-            0.0, 
-            Material::new(Vector3::new(0.0, 0.0, 0.2), 1.0, 1.0, 0.0)
+            Vector3::new(0.0, 1.0, 0.0),
+            0.0,
+            Arc::new(Material::new(Color::new(0.0, 0.0, 0.2), 1.0, 0.0, 0.0, 0.0))
         )));
         self.objects.push(Box::new(Plane::new(   //Right
-            Vector3::new(0.0, 1.0, 0.0), 
-            10000.0, 
-            Material::new(Vector3::new(0.0, 0.0, 0.2), 1.0, 1.0, 0.0)
+            Vector3::new(0.0, 1.0, 0.0),
+            10000.0,
+            Arc::new(Material::new(Color::new(0.0, 0.0, 0.2), 1.0, 0.0, 0.0, 0.0))
         )));
         self.objects.push(Box::new(Plane::new(   // Bottom
-            Vector3::new(0.0, 0.0, 1.0), 
-            100.0, 
-            Material::new(Vector3::new(0.5, 0.5, 0.5), 1.0, 1.0, 0.0)
+            Vector3::new(0.0, 0.0, 1.0),
+            100.0,
+            Arc::new(Material::new(Color::new(0.0, 0.3, 0.0), 1.0, 0.0, 0.0, 0.0))
         )));
         self.objects.push(Box::new(Plane::new(   // Top
-            Vector3::new(0.0, 0.0, 1.0), 
-            10000.0, 
-            Material::new(Vector3::new(0.5, 0.5, 0.5), 0.0, 0.0, 0.0)
+            Vector3::new(0.0, 0.0, 1.0),
+            10000.0,
+            Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 1.0, 0.0, 0.0, 0.0))
         )));
         self.objects.push(Box::new(Plane::new(  //Back
-            Vector3::new(1.0, 0.0, 0.0), 
-            100.0, 
-            Material::new(Vector3::new(1.0, 0.0, 0.0), 1.0, 1.0, 0.0)
+            Vector3::new(1.0, 0.0, 0.0),
+            -3000.0,
+            Arc::new(Material::new(Color::new(0.5, 0.0, 0.0), 1.0, 0.0, 0.0, 0.0))
         )));
         self.objects.push(Box::new(Plane::new(   // Front
-            Vector3::new(1.0, 0.0, 0.0), 
-            250000.0, 
-            Material::new(Vector3::new(1.0, 0.0, 0.0), 0.0, 0.0, 0.0)
+            Vector3::new(1.0, 0.0, 0.0),
+            20000.0,
+            Arc::new(Material::new(Color::new(0.5, 0.0, 0.0), 1.0, 0.0, 0.0, 0.0))
         )));
-//        self.objects.push(Box::new(Sphere::new(
-//            1500.0,
-//            Vector3::new(800.0, 7000.0, 2000.0),
-//            Material::new(Vector3::new(0.1, 0.4, 0.3), 1.0, 0.0, 0.0)
-//        )));
-//        self.objects.push(Box::new(Sphere::new(
-//            1000.0,
-//            Vector3::new(500.0, 5000.0, 6000.0),
-//            Material::new(Vector3::new(0.0, 1.0, 0.0), 0.0, 1.0, 0.0)
-//        )));
+        self.objects.push(Box::new(Sphere::new(
+            2000.0,
+            Vector3::new(5000.0, 5000.0, 4200.0),
+            Arc::new(Material::new(Color::new(0.0, 0.0, 0.0), 0.0, 1.0, 0.0, 0.0)),
+        )));
+        // 设置光源
+        self.illumiants.push(Arc::new(DotLight::new(
+            Vector3::new(19000.0, 1100.0, 9000.0)
+        )));
+        //self.illumiants.push(Box::new(DotLight::new(
+            //Vector3::new(18000.0, 1100.0, 9000.0), 100
+        //)));
     }
 
     // 求给定射线在场景中的碰撞点
-    fn intersect(&self, r : &Ray, t : &mut f64, id : &mut usize) -> bool {
+    pub fn intersect(&self, ray : &Ray) -> Option<Collider> {
         let inf : f64 = 1e20;
-        *t = 1e20;
+        let mut t : f64 = 1e20;
+        let mut id : usize = 0;
         for i in 0..self.objects.len() {
-            if let Some(d) = self.objects[i].intersect(r) {
-                if d < *t {
-                    *t = d;
-                    *id = i;
+            if let Some(d) = self.objects[i].intersect(ray) {
+                if d < t {
+                    t = d;
+                    id = i;
                 }
             }
         }
-        *t < inf
+        if t < inf {
+            let position =ray.o + ray.d.mult(t); 
+            return Some(Collider {
+                pos : position,
+                material : self.objects[id].get_material(),
+                norm_vec : self.objects[id].get_normal_vec(&position),
+                distance : t,
+                in_direction : ray.d,
+            });
+        } else {
+            return None;
+        }
     }
 
-    // first pass : ray tracing from eyes
-    pub fn trace_ray(&mut self, ray: &Ray) {
-        // TODO learn from smallpt radiance
+    pub fn get_light_num(&self) -> usize {
+        self.illumiants.len()
+    }
+
+    pub fn get_light(&self, idx : usize) -> Arc<Light> {
+        self.illumiants[idx].clone()
     }
 }

@@ -1,18 +1,19 @@
 use super::*;
 use super::material::*;
+use std::sync::Arc;
+use crate::consts::EPS;
 
 pub trait Primitive {
     fn intersect(&self, r : &Ray) -> Option<f64>;
     fn get_normal_vec(&self, pos : &Vector3) -> Vector3;
-    fn get_color(&self) -> Vector3;
-    fn cal_diffuse_reflection(&self, pos : &Vector3, ray : &Vector3) -> Option<Vector3>;    // 给定光线ray及照射位置pos，返回漫反射得到的射线
-    fn cal_specular_reflection(&self, pos : &Vector3, ray : &Vector3) -> Option<Vector3>;    // 给定光线ray及照射位置pos，返回镜面反射得到的射线
+    fn get_color(&self) -> Color;
+    fn get_material(&self) -> Arc<Material>;
 }
 
 pub struct Sphere {
     pub radius : f64,
     pub position : Vector3,
-    pub material : Material,
+    pub material : Arc<Material>,
 }
 
 impl Primitive for Sphere {
@@ -21,7 +22,7 @@ impl Primitive for Sphere {
         let eps : f64 = 1e-4;
         let b : f64 = op.dot(&r.d);
         let mut det = b * b - op.dot(&op) + self.radius * self.radius;
-        if det < 0.0 {
+        if det < EPS {
             return None;
         } else {
             det = det.sqrt();
@@ -40,32 +41,17 @@ impl Primitive for Sphere {
         ret
     }
 
-    fn get_color(&self) -> Vector3 {
+    fn get_color(&self) -> Color {
         self.material.color
     }
 
-    fn cal_diffuse_reflection(&self, pos : &Vector3, dir : &Vector3) -> Option<Vector3> {
-        if self.material.is_diffuse() {
-            let normal_vec = self.get_normal_vec(pos);    // 根据物体形状信息获得在该点的法向量
-            return self.material
-                       .cal_diffuse_ray(dir, &normal_vec);  // 最终将法向量以及射入射线委托material进行计算，即根据材质计算漫反射结果。
-        }
-        None
+    fn get_material(&self) -> Arc<Material>{
+        self.material.clone()
     }
-
-    fn cal_specular_reflection(&self, pos : &Vector3, dir : &Vector3) -> Option<Vector3> {
-        if self.material.is_specular() {
-            let normal_vec = self.get_normal_vec(pos);    // 根据物体形状信息获得在该点的法向量
-            return self.material
-                       .cal_specular_ray(dir, &normal_vec);  // 最终将法向量以及射入射线委托material进行计算，即根据材质计算镜面反射结果。
-        }
-        None
-    }
-
 }
 
 impl Sphere {
-    pub fn new(radius : f64, position : Vector3, material : Material) -> Self {
+    pub fn new(radius : f64, position : Vector3, material : Arc<Material>) -> Self {
         Sphere{ 
             radius, 
             position, 
@@ -77,7 +63,7 @@ impl Sphere {
 pub struct Plane {
     direction : Vector3,
     distance : f64,
-    material : Material,
+    material : Arc<Material>,
 }
 
 impl Primitive for Plane {
@@ -94,35 +80,21 @@ impl Primitive for Plane {
         return None;
     }
 
-    fn get_normal_vec(&self, pos : &Vector3) -> Vector3 {
+    fn get_normal_vec(&self, _ : &Vector3) -> Vector3 {
         self.direction
     }
 
-    fn get_color(&self) -> Vector3 {
+    fn get_color(&self) -> Color {
         self.material.color
     }
 
-    fn cal_diffuse_reflection(&self, pos : &Vector3, dir : &Vector3) -> Option<Vector3> {
-        if self.material.is_diffuse() {
-            let normal_vec = self.get_normal_vec(pos);    // 根据物体形状信息获得在该点的法向量
-            return self.material
-                       .cal_diffuse_ray(dir, &normal_vec);  // 最终将法向量以及射入射线委托material进行计算，即根据材质计算漫反射结果。
-        }
-        None
-    }
-    
-    fn cal_specular_reflection(&self, pos : &Vector3, dir : &Vector3) -> Option<Vector3> {
-        if self.material.is_specular() {
-            let normal_vec = self.get_normal_vec(pos);    // 根据物体形状信息获得在该点的法向量
-            return self.material
-                       .cal_specular_ray(dir, &normal_vec);  // 最终将法向量以及射入射线委托material进行计算，即根据材质计算漫反射结果。
-        }
-        None
+    fn get_material(&self) -> Arc<Material> {
+        self.material.clone()
     }
 }
 
 impl Plane {
-    pub fn new(direction : Vector3, distance : f64, material : Material) -> Self {
+    pub fn new(direction : Vector3, distance : f64, material : Arc<Material>) -> Self {
         Plane { direction : direction.normalize(), distance , material, }
     }
 }

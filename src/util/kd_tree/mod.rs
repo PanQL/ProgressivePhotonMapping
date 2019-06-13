@@ -1,7 +1,7 @@
 use std::vec::Vec;
 use std::boxed::Box;
-
 use super::*;
+use crate::consts::MAX_PH_RADIUS;
 
 pub struct KdTree {
     left: Option<Box<KdTree>>,
@@ -11,11 +11,12 @@ pub struct KdTree {
     split: usize,
     value: Option<ViewPoint>,
     capacity: usize,
+    photon_number : f64,
 }
 
 impl KdTree {
     pub fn new() -> Self {
-        KdTree { left: None, right: None, split: 0, value: None, capacity: 1 }
+        KdTree { left: None, right: None, split: 0, value: None, capacity: 1, photon_number: 0.0 }
     }
 
     pub fn build(&mut self, values: &mut Vec<ViewPoint>, split: usize) -> bool {
@@ -67,5 +68,52 @@ impl KdTree {
         return true;
     }
 
-    pub fn walk_photon(&mut self, photon: &Photon) {}
+    pub fn walk_photon(&mut self, photon: &Photon) {
+        let point = self.value.as_mut().unwrap();
+        if point.influenced(photon) {   // 统计光子的通量和数目
+            // TODO 过于粗糙的估计
+            point.handle(photon);
+            self.photon_number += 1.0;
+        }
+        let judge = photon.ray.o.by_coordiante(self.split) - point.pos.by_coordiante(self.split);
+        if judge <= MAX_PH_RADIUS {
+            if let Some(left) = self.left.as_mut() {
+                left.walk_photon(photon);
+            }
+        }
+        if judge >= -MAX_PH_RADIUS {
+            if let Some(right) = self.right.as_mut() {
+                right.walk_photon(photon);
+            }
+        }
+    }
+
+    pub fn setup_pixel(&mut self, pic: &mut Vec<Color>, width : usize, n_emitted : f64) {
+        let point = self.value.as_ref().unwrap();
+        // TODO 计算的是落在视点半径范围内的光子的平均色彩。
+        let to_div = std::f64::consts::PI * n_emitted * point.radius.powi(2);
+        pic[point.x * width + point.y] += point.flux_color.div(to_div) * point.color; //TODO !!!
+        if let Some(left) = self.left.as_mut() {
+            left.setup_pixel(pic, width, n_emitted);
+        }
+        if let Some(right) = self.right.as_mut() {
+            right.setup_pixel(pic, width, n_emitted);
+        }
+    }
+
+    pub fn renew(&mut self) {
+        let point = self.value.as_mut().unwrap();
+        if point.count != 0.0 {
+            let new_radiu = point.radius * ( point.count as f64 + self.photon_number * 0.6) / ( point.count as f64 + self.photon_number);
+            point.radius = new_radiu;
+        }
+        point.count += self.photon_number;
+        self.photon_number = 0.0;
+        if let Some(left) = self.left.as_mut() {
+            left.renew();
+        }
+        if let Some(right) = self.right.as_mut() {
+            right.renew();
+        }
+    }
 }

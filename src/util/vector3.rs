@@ -4,7 +4,7 @@ extern crate rand;
 
 use rand::Rng;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct Vector3 {
     // use for 3D position
     pub x: f64,
@@ -47,9 +47,9 @@ impl Div for Vector3 {
 impl Vector3 {
     pub fn random() -> Self {   // generate a vec randomly
         Vector3 {
-            x: rand::thread_rng().gen_range(0.0, 2.0) as f64,
-            y: rand::thread_rng().gen_range(0.0, 2.0) as f64,
-            z: rand::thread_rng().gen_range(0.0, 2.0) as f64,
+            x: rand::thread_rng().gen_range(-10.0, 10.0),
+            y: rand::thread_rng().gen_range(-10.0, 10.0),
+            z: rand::thread_rng().gen_range(-10.0, 10.0),
         }.normalize()
     }
 
@@ -81,14 +81,17 @@ impl Vector3 {
         Vector3 { x: -self.x, y: -self.y, z: -self.z }
     }
 
-//    pub fn to_int(&self) -> (u8, u8, u8) {
-//        if !self.is_zero_vec() {
-//            let temp = self.normalize();
-//            return ( ( temp.x * 255.0 ) as u8,
-//                     ( temp.y * 255.0 ) as u8,
-//                     ( temp.z * 255.0 ) as u8 );
-//        }
-//        (0u8, 0u8, 0u8)
-//    }
+    pub fn distance(&self, other : &Vector3) -> f64 {
+        ((self.x - other.x).powi(2) + (self.y - other.y).powi(2) + (self.z - other.z).powi(2)).sqrt()
+    }
+
+    pub fn by_coordiante(&self, coord : usize) -> f64 {
+        return match coord {
+            0 => self.x,
+            1 => self.y,
+            2 => self.z,
+            _ => unimplemented!()
+        }
+    }
 }
 
