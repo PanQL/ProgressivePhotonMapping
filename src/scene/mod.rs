@@ -20,11 +20,11 @@ impl Scene {
     }
 
     pub fn init(&mut self) {
-        self.objects.push(Box::new(Plane::new(   //Left
-            Vector3::new(0.0, 1.0, 0.0),
-            0.0,
-            Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 0.5, 0.0, 0.0, 0.0))
-        )));
+        //self.objects.push(Box::new(Plane::new(   //Left
+            //Vector3::new(0.0, 1.0, 0.0),
+            //0.0,
+            //Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 0.5, 0.0, 0.0, 0.0))
+        //)));
         self.objects.push(Box::new(Plane::new(   //Right
             Vector3::new(0.0, 1.0, 0.0),
             10000.0,
@@ -33,31 +33,32 @@ impl Scene {
         self.objects.push(Box::new(Plane::new(   // Bottom
             Vector3::new(0.0, 0.0, 1.0),
             100.0,
-            Arc::new(Material::new(Color::new(0.1, 0.3, 0.1), 0.5, 0.0, 0.0, 0.0))
+            Arc::new(Material::new(Color::new(0.1, 0.3, 0.1), 0.5, 0.5, 0.0, 0.0))
         )));
-        self.objects.push(Box::new(Plane::new(   // Top
-            Vector3::new(0.0, 0.0, 1.0),
-            10000.0,
-            Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 0.5, 0.0, 0.0, 0.0))
-        )));
+        //self.objects.push(Box::new(Plane::new(   // Top
+            //Vector3::new(0.0, 0.0, 1.0),
+            //10000.0,
+            //Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 0.5, 0.0, 0.0, 0.0))
+        //)));
         self.objects.push(Box::new(Plane::new(  //Back
             Vector3::new(1.0, 0.0, 0.0),
             -3000.0,
-            Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 0.5, 0.0, 0.0, 0.0))
+            Arc::new(Material::new(Color::new(0.5, 0.1, 0.1), 0.5, 0.0, 0.0, 0.0))
         )));
-        self.objects.push(Box::new(Plane::new(   // Front
-            Vector3::new(1.0, 0.0, 0.0),
-            20000.0,
-            Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 0.5, 0.0, 0.0, 0.0))
-        )));
+        //self.objects.push(Box::new(Plane::new(   // Front
+            //Vector3::new(1.0, 0.0, 0.0),
+            //20000.0,
+            //Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 0.5, 0.0, 0.0, 0.0))
+        //)));
         self.objects.push(Box::new(Sphere::new(
             2000.0,
             Vector3::new(5000.0, 5000.0, 4200.0),
-            Arc::new(Material::new(Color::new(0.0, 0x33 as f64 / 256.0, 0xff as f64 / 256.0), 0.5, 0.0, 0.0, 0.0)),
+            Arc::new(Material::new(Color::new(0.0, 0x33 as f64 / 256.0, 0xff as f64 / 256.0), 0.2, 0.8, 0.0, 0.0)),
+            //Arc::new(Material::new(Color::new(0.5, 0.0, 0.0), 0.2, 0.8, 0.0, 0.0)),
         )));
         // 设置光源
         self.illumiants.push(Arc::new(DotLight::new(
-            Vector3::new(18000.0, 1100.0, 9000.0)
+            Vector3::new(5000.0, 1100.0, 6000.0)
         )));
         //self.illumiants.push(Box::new(DotLight::new(
             //Vector3::new(18000.0, 1100.0, 9000.0), 100

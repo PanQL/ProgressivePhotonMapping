@@ -129,5 +129,6 @@ impl Vector3 {
         z += self.z * ( axis.z.powi(2) + ( 1.0 - axis.z.powi(2)) * cost );
         Vector3 { x, y, z}
     }
+
 }
 

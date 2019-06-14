@@ -48,10 +48,11 @@ impl Color {
 
     pub fn to_u16(&self) -> (u16, u16, u16) {
         if !self.is_zero_vec() {
-            let temp = self.normalize();
-            return ((temp.r * 65535.0) as u16,
-                    (temp.g * 65535.0) as u16,
-                    (temp.b * 65535.0) as u16);
+            //let temp = self.normalize();
+            let m = self.r.max(self.g).max(self.b);
+            return ((self.r / m * 65535.0) as u16,
+                    (self.g / m * 65535.0) as u16,
+                    (self.b / m * 65535.0) as u16);
         }
         (0u16, 0u16, 0u16)
     }
@@ -63,6 +64,11 @@ impl Color {
     pub fn refresh_by_power(&self) -> Color {
         let power = (self.r + self.g + self.b) / 3.0;
         Color { r : self.r / power, g : self.g / power, b : self.b / power }
+    }
+
+    pub fn norm_max(&self) -> Color {
+        let m = self.r.max(self.g).max(self.b);
+        return Color { r : self.r / m, g : self.g / m, b : self.b / m }
     }
 }
 

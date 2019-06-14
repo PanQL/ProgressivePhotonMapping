@@ -104,13 +104,14 @@ impl KdTree {
 
     pub fn renew(&mut self) {
         let point = self.value.as_mut().unwrap();
-        if point.count > 1e-8 {
+        if self.photon_number > 1e-8 {
             let k = ( point.count as f64 + self.photon_number * 0.7) / ( point.count as f64 + self.photon_number);
             let new_radius2 = point.radius2 * k;
             point.radius2 = new_radius2;
             point.flux_color = point.flux_color.mult(k);
+            point.count += self.photon_number * k;
+            self.photon_number = 0.0;
         }
-        point.count += self.photon_number;
         self.photon_number = 0.0;
         if let Some(left) = self.left.as_mut() {
             left.renew();
