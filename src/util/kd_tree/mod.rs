@@ -1,7 +1,7 @@
 use std::vec::Vec;
 use std::boxed::Box;
 use super::*;
-use crate::consts::MAX_PH_RADIUS;
+use crate::consts::MAX_PH_RADIUS2;
 
 pub struct KdTree {
     left: Option<Box<KdTree>>,
@@ -76,12 +76,13 @@ impl KdTree {
             self.photon_number += 1.0;
         }
         let judge = photon.ray.o.by_coordiante(self.split) - point.pos.by_coordiante(self.split);
-        if judge <= MAX_PH_RADIUS {
+        let judge2 = judge * judge;
+        if judge <= 0.0 || judge2 <= MAX_PH_RADIUS2 {
             if let Some(left) = self.left.as_mut() {
                 left.walk_photon(photon);
             }
         }
-        if judge >= -MAX_PH_RADIUS {
+        if judge >= 0.0 || judge2 <= MAX_PH_RADIUS2 {
             if let Some(right) = self.right.as_mut() {
                 right.walk_photon(photon);
             }
@@ -91,7 +92,7 @@ impl KdTree {
     pub fn setup_pixel(&mut self, pic: &mut Vec<Color>, width : usize, n_emitted : f64) {
         let point = self.value.as_ref().unwrap();
         // TODO 计算的是落在视点半径范围内的光子的平均色彩。
-        let to_div = std::f64::consts::PI * n_emitted * point.radius.powi(2);
+        let to_div = std::f64::consts::PI * n_emitted * point.radius2;
         pic[point.x * width + point.y] += point.flux_color.div(to_div) * point.color; //TODO !!!
         if let Some(left) = self.left.as_mut() {
             left.setup_pixel(pic, width, n_emitted);
@@ -103,9 +104,11 @@ impl KdTree {
 
     pub fn renew(&mut self) {
         let point = self.value.as_mut().unwrap();
-        if point.count != 0.0 {
-            let new_radiu = point.radius * ( point.count as f64 + self.photon_number * 0.6) / ( point.count as f64 + self.photon_number);
-            point.radius = new_radiu;
+        if point.count > 1e-8 {
+            let k = ( point.count as f64 + self.photon_number * 0.7) / ( point.count as f64 + self.photon_number);
+            let new_radius2 = point.radius2 * k;
+            point.radius2 = new_radius2;
+            point.flux_color = point.flux_color.mult(k);
         }
         point.count += self.photon_number;
         self.photon_number = 0.0;

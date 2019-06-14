@@ -1,7 +1,9 @@
-use super::{Ray, Vector3, color::Color};
+use super::{Ray, Vector3, color::Color, collision::Collider};
 use crate::scene::material::Material;
+use crate::consts::*;
 use std::sync::Arc;
 
+#[derive(Clone)]
 pub struct Photon {
     pub ray: Ray,
     pub power: Color,
@@ -15,7 +17,7 @@ pub struct ViewPoint {
     pub x: usize,   // 在图片中对应的行位置
     pub y: usize,   // 在图片中对应的列位置
     pub color: Color, // 本身颜色值
-    pub radius: f64,
+    pub radius2: f64,
     pub count: f64, // 已经被统计到该视点名下的光子数量
     pub flux_color: Color, // 光子累积的通量,初始化为(0,0,0)
     pub material : Arc<Material>, // 关于该视点所在位置的材质信息
@@ -23,15 +25,27 @@ pub struct ViewPoint {
 }
 
 impl ViewPoint {
-    pub fn new(pos: Vector3, norm: Vector3, dire: Vector3, x: usize, y: usize, color: Color, material : Arc<Material>, wgt : f64) -> Self {
-        ViewPoint { pos, norm, dire, x, y, color, radius: 500.0, count: 0.0, flux_color: Color::default(), material, wgt }
+    pub fn new(collider : &Collider, x: usize, y: usize,  wgt : f64) -> Self {
+        ViewPoint { 
+            pos : collider.pos, 
+            norm : collider.norm_vec, 
+            dire : collider.in_direction.mult(-1.0), 
+            x, 
+            y, 
+            color : collider.material.color, 
+            radius2: MAX_PH_RADIUS2, 
+            count: 0.0, 
+            flux_color: Color::default(), 
+            material : collider.material.clone(), 
+            wgt 
+        }
     }
 
     pub fn influenced(&self, photon : &Photon) -> bool {
-        self.pos.distance(&photon.ray.o) < self.radius
+        self.pos.distance2(&photon.ray.o) < self.radius2
     }
 
     pub fn handle(&mut self, photon : &Photon) {
-        self.flux_color += photon.power.mult(self.material.brdf(&self.dire, &self.norm, &photon.ray.d));
+        self.flux_color += photon.power.mult(self.material.brdf(&photon.ray.d, &self.norm, &self.dire));
     }
 }

@@ -60,6 +60,10 @@ impl Color {
         (self.r + self.g + self.b) / 3.0
     }
 
+    pub fn refresh_by_power(&self) -> Color {
+        let power = (self.r + self.g + self.b) / 3.0;
+        Color { r : self.r / power, g : self.g / power, b : self.b / power }
+    }
 }
 
 impl Add for Color {

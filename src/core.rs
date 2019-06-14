@@ -2,6 +2,9 @@ use super::scene::Scene;
 use super::util::*;
 use super::camera::Camera;
 use std::vec::Vec;
+extern crate rand;
+
+use rand::Rng;
 
 pub struct ProgressivePhotonTracer {
     camera : Camera,
@@ -11,6 +14,7 @@ pub struct ProgressivePhotonTracer {
     scene: Scene,
     hit_point_map : KdTree,
     points : Vec<ViewPoint>,
+    emitted_photon : f64,
 }
 
 impl ProgressivePhotonTracer {
@@ -23,6 +27,7 @@ impl ProgressivePhotonTracer {
             scene,
             hit_point_map : KdTree::new(),
             points : Vec::new(),
+            emitted_photon : 0.0,
         }
     }
 
@@ -38,14 +43,8 @@ impl ProgressivePhotonTracer {
     pub fn trace_ray(&mut self, ray: &Ray, pixel_x: usize, pixel_y: usize, weight : f64) {
         if let Some(collider) = self.scene.intersect(ray) {
             if collider.material.is_diffuse() {
-                let vec_n = if collider.norm_vec.dot(&ray.d) > 0.0 {    // 这里需要的是和视线夹角为钝角的法向量
-                    collider.norm_vec.mult(-1.0)
-                } else {
-                    collider.norm_vec
-                };
                 self.points.push(
-                    ViewPoint::new(collider.pos, ray.d.mult(-1.0), vec_n, pixel_x, pixel_y, collider.material.color, 
-                                   collider.material.clone(), weight)   // TODO corrent weight
+                    ViewPoint::new(&collider,  pixel_x, pixel_y, weight)   // TODO corrent weight
                 );
             }
             if collider.material.is_specular() {
@@ -91,20 +90,54 @@ impl ProgressivePhotonTracer {
         }
     }
 
-    fn photon_tracing(&mut self, photon : &mut Photon) {
+    fn photon_tracing(&mut self, mut photon : Photon, depth : u32) {
+        if depth > 10 { return; }   // 最大递归深度
         if let Some(collider) = self.scene.intersect(&photon.ray) {
-            if collider.material.is_diffuse() {  // 漫反射属性
-                photon.ray.o = collider.pos;
-                photon.ray.d = photon.ray.d.mult(-1.0); // 方向设置为指向光源的方向
-                self.hit_point_map.walk_photon(photon);   // 计算该光子对碰撞点的影响
+            photon.ray.o = collider.pos;
+            if collider.material.is_diffuse() && depth > 0{    // 到达漫反射平面
+                let mut new_photon = photon.clone();
+                new_photon.ray.d = photon.ray.d.mult(-1.0); // 方向设置为指向光源的方向
+                self.hit_point_map.walk_photon(&new_photon);   // 计算该光子对碰撞点的影响
+                return;
             }
-            if collider.material.is_specular() { // 镜面反射属性
-                let mut new_photon = Photon {
-                    ray : Ray { o : photon.ray.o, d : material.cal_specular_ray(&origin_d, &n) }, power : ,
-                };
-                self.photon_tracing(&mut new_photon, tree);
+
+            let mut prob = 2.0;
+            if !self.photon_diffusion(&collider, photon.clone(), depth, &mut prob) {
+                if !self.photon_reflection(&collider, photon.clone(), depth, &mut prob) {
+                }
             }
+            
         }
+    }
+
+    fn photon_reflection(&mut self, collider : &Collider, mut photon : Photon, depth : u32, prob : &mut f64) -> bool {
+        let eta = collider.material.specular * collider.material.color.power();
+        if eta < rand::thread_rng().gen_range(0.0, 1.0) * ( *prob) {
+            *prob -= eta;
+            return false;
+        }
+
+        if let Some(spec_ray) = collider.get_specular_ray() {
+            photon.ray.d = spec_ray;
+            photon.power = photon.power * collider.material.color.refresh_by_power();
+            self.photon_tracing(photon, depth + 1);
+        }
+        return true;
+    }
+
+    fn photon_diffusion(&mut self, collider : &Collider, mut photon : Photon, depth : u32, prob : &mut f64) -> bool {
+        let eta = collider.material.diffuse * collider.material.color.power();
+        if eta < rand::thread_rng().gen_range(0.0, 1.0) * ( *prob) {
+            *prob -= eta;
+            return false;
+        }
+
+        if let Some(diff_ray) = collider.get_diffuse_ray() {
+            photon.ray.d = diff_ray;
+            photon.power = photon.power * collider.material.color.refresh_by_power();
+            self.photon_tracing(photon, depth + 1);
+        }
+        return true;
     }
 
     fn photon_tracing_pass(&mut self, photon_number : usize) {
@@ -112,8 +145,7 @@ impl ProgressivePhotonTracer {
         for i in 0..number {
             let illumiant = self.scene.get_light(i);
             for _ in 0..photon_number {
-                let mut photon = illumiant.gen_photon();
-                self.photon_tracing(&mut photon);
+                self.photon_tracing(illumiant.gen_photon(), 0);
             }
         }
     }

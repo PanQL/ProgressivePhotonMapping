@@ -10,7 +10,7 @@ pub use view_point::{ViewPoint, Photon};
 pub use kd_tree::KdTree;
 pub use collision::Collider;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Ray {
     pub o : Vector3,
     pub d : Vector3,
