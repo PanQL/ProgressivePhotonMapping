@@ -93,7 +93,7 @@ impl KdTree {
         let point = self.value.as_ref().unwrap();
         // TODO 计算的是落在视点半径范围内的光子的平均色彩。
         let to_div = std::f64::consts::PI * n_emitted * point.radius2;
-        pic[point.x * width + point.y] += point.flux_color.div(to_div) * point.color; //TODO !!!
+        pic[point.x * width + point.y] += point.flux_color.div(to_div) * point.color.mult(point.wgt); //TODO !!!
         if let Some(left) = self.left.as_mut() {
             left.setup_pixel(pic, width, n_emitted);
         }

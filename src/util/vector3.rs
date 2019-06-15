@@ -89,6 +89,10 @@ impl Vector3 {
         (self.x - other.x).powi(2) + (self.y - other.y).powi(2) + (self.z - other.z).powi(2)
     }
 
+    pub fn distance2_array(&self, other : &[f64;3]) -> f64 {
+        (self.x - other[0]).powi(2) + (self.y - other[1]).powi(2) + (self.z - other[2]).powi(2)
+    }
+
     pub fn by_coordiante(&self, coord : usize) -> f64 {
         return match coord {
             0 => self.x,
@@ -130,5 +134,8 @@ impl Vector3 {
         Vector3 { x, y, z}
     }
 
+    //pub fn get_array(&self) -> &'static [f64;3] {
+        //[self.x.clone(), self.y.clone(), self.z.clone()]
+    //}
 }
 
