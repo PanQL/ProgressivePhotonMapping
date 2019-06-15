@@ -16,8 +16,8 @@ fn main() {
     scene.init();
     let mut camera = Camera::new();
     camera.set_size(1024, 768);
-    camera.set_pos(&Vector3::new(18000.0, 5000.0, 5000.0));
+    camera.set_pos(&Vector3::new(6000.0, 5000.0, 400.0));
     camera.set_dir(Vector3::new(-1.0, 0.0, 0.0));
     let mut ppm = ProgressivePhotonTracer::new(camera, scene); 
-    ppm.run(100);
+    ppm.run(3);
 }

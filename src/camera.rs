@@ -31,8 +31,8 @@ impl Camera {
     }
 
     pub fn emitting(&self, i : usize, j : usize) -> Ray {
-        let cx = Vector3::new(0.0, self.width as f64 / self.height as f64, 0.0);
-        let cy = Vector3::new(0.0, 0.0, -1.0);
+        let cx = self.direction.get_vertical_vec().mult(self.width as f64 / self.height as f64);
+        let cy = cx.cross(&self.direction).mult(self.height as f64 / self.width as f64).mult(-1.0);
         let d = cx.mult(i as f64 / self.width as f64 - 0.5)
             + cy.mult(j as f64 / self.height as f64 - 0.5) + self.direction;
         Ray {

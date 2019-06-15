@@ -85,16 +85,18 @@ impl ProgressivePhotonTracer {
         self.ray_tracing_pass(); // 从眼睛发射光线
         
         self.class = TraceType::PM;
+        info!("here");
         self.photon_tracing_pass(10_0000);
         self.total_photon += 10_0000.0;
         self.cal_hp_radius();
+        info!("here");
         self.class = TraceType::PPM;
 
         for i in 0..times {
-            self.photon_tracing_pass(10_0000);
-            self.total_photon += 100000.0;
+            self.photon_tracing_pass(10_0000_i32.pow(i as u32) as usize);
+            self.total_photon += 10_0000_i32.pow(i as u32) as f64;
             self.renew_hp_map();
-            info!("{} rounds", i);
+            info!("{} rounds, {} photons ", i, self.total_photon);
         }
 
         self.gen_png();
@@ -172,6 +174,7 @@ impl ProgressivePhotonTracer {
     }
 
     fn cal_hp_radius(&mut self ) {
+        let max_radius = 30.0;
         let mut max_dist : f64 = 0.0;
         let mut distance : f64 = 0.0;
         let mut coord : [f64;3] = [0.0, 0.0, 0.0];
@@ -180,20 +183,18 @@ impl ProgressivePhotonTracer {
             coord[0] = vp.pos.x;
             coord[1] = vp.pos.y;
             coord[2] = vp.pos.z;
-            let result = self.photon_map.nearest(&coord, 1, &squared_euclidean).unwrap(); 
+            let result = self.photon_map.nearest(&coord, 10, &squared_euclidean).unwrap(); 
             for (_, photon) in result.iter() {
-                vp.handle(photon);
                 let tmp_distance = vp.pos.distance2(&photon.ray.o);
                 if tmp_distance > distance { distance = tmp_distance }
             }
-            if distance < MAX_PH_RADIUS2 { vp.count = distance; }
-            vp.count += result.len() as f64;
-            //if distance < 10_000.0 { 
-                //vp.radius2 = 10_000.0;
-                //continue;
-            //}
-            //vp.radius2 = distance;
-            //if max_dist < distance { max_dist = distance; }
+            if distance < max_radius { 
+                vp.radius2 = distance; 
+            } else {
+                vp.radius2 = max_radius;
+            }
+            vp.count = result.len() as f64;
+            if max_dist < distance { max_dist = distance; }
             distance = 0.0;
         }
         info!("distance is {}", max_dist);
