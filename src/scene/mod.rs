@@ -57,16 +57,16 @@ impl Scene {
             //Arc::new(Material::new(Color::new(0.5, 0.0, 0.0), 0.2, 0.8, 0.0, 0.0)),
         )));
         // 设置光源
-        //self.illumiants.push(Arc::new(DotLight::new(
-            //Vector3::new(5000.0, 1100.0, 600.0)
-        //)));
-        self.illumiants.push(Arc::new(AreaLight::new(
-            Vector3::new(4800.0, 5000.0, 800.0),
-            Vector3::new(1.0, 0.0, 0.0),
-            Vector3::new(0.0, 1.0, 0.0),
-            Vector3::new(0.0, 0.0, -1.0),
-            Color::new(1.0, 1.0, 1.0)
+        self.illumiants.push(Arc::new(DotLight::new(
+            Vector3::new(5000.0, 4500.0, 800.0)
         )));
+        //self.illumiants.push(Arc::new(AreaLight::new(
+            //Vector3::new(5000.0, 5000.0, 800.0),
+            //Vector3::new(1.0, 0.0, 0.0),
+            //Vector3::new(0.0, 1.0, 0.0),
+            //Vector3::new(0.0, 0.0, -1.0),
+            //Color::new(1.0, 1.0, 1.0)
+        //)));
         //self.illumiants.push(Box::new(DotLight::new(
             //Vector3::new(18000.0, 1100.0, 9000.0), 100
         //)));
