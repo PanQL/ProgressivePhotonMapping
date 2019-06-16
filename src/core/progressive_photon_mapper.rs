@@ -1,7 +1,6 @@
 use crate::scene::Scene;
 use crate::util::*;
 use crate::camera::Camera;
-use crate::consts::*;
 use std::vec::Vec;
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -18,13 +17,11 @@ enum TraceType {
 
 pub struct ProgressivePhotonTracer {
     class : TraceType,  // 渲染算法类型
-    //camera : Arc<Camera>,   // 相机，只读
-    camera : Camera,   // 相机，只读
+    camera : Arc<Camera>,   // 相机，只读
     picture: Vec<Color>,    // 所有线程结束之后才会写回,无需互斥
     width: usize,
     height: usize,
-    //scene: Arc<Scene>,  // 场景，只读
-    scene: Scene,  // 场景，只读
+    scene: Arc<Scene>,  // 场景，只读
     hit_point_map : Kd<f64, Arc<RefCell<ViewPoint>>, [f64;3]>,
     points : Vec<Arc<RefCell<ViewPoint>>>,
     photon_map : Kd<f64, Photon, [f64;3]>,   // 光子图
@@ -35,11 +32,11 @@ impl ProgressivePhotonTracer {
     pub fn new(camera : Camera, scene : Scene) -> Self {
         ProgressivePhotonTracer{
             class : TraceType::PPM,
-            camera ,
+            camera : Arc::new(camera) ,
             picture: Vec::new(),
             width: 0,
             height: 0,
-            scene,
+            scene : Arc::new(scene),
             hit_point_map : Kd::new(3),
             points : Vec::new(),
             photon_map : Kd::new(3),
@@ -100,35 +97,7 @@ impl ProgressivePhotonTracer {
             self.renew_hp_map();
             info!("{} rounds, {} photons ", i, self.total_photon);
         }
-
-        //self.photon_tracing_pass(10_0000);
-        //self.total_photon += 10_0000.0;
-        //self.renew_hp_map();
-        //info!("{} photons ", self.total_photon);
-        //self.photon_tracing_pass(100_0000);
-        //self.total_photon += 100_0000.0;
-        //self.renew_hp_map();
-        //info!("{} photons ", self.total_photon);
-        //self.photon_tracing_pass(1000_0000);
-        //self.total_photon += 1000_0000.0;
-        //self.renew_hp_map();
-        //info!("{} photons ", self.total_photon);
-        //self.photon_tracing_pass(10000_0000);
-        //self.total_photon += 10000_0000.0;
-        //self.renew_hp_map();
-        //info!("{} photons ", self.total_photon);
-        //self.photon_tracing_pass(1000_0000);
-        //self.total_photon += 1000_0000.0;
-        //self.renew_hp_map();
-        //info!("{} photons ", self.total_photon);
-        //self.photon_tracing_pass(100_0000);
-        //self.total_photon += 100_0000.0;
-        //self.renew_hp_map();
-        //info!("{} photons ", self.total_photon);
-        //self.photon_tracing_pass(10_0000);
-        //self.total_photon += 10_0000.0;
-        //self.renew_hp_map();
-        //info!("{} photons ", self.total_photon);
+        
 
         self.gen_png();
     }
@@ -137,7 +106,6 @@ impl ProgressivePhotonTracer {
         if depth > 10 { return; }   // 最大递归深度
         if let Some(collider) = self.scene.intersect(&photon.ray) {
             photon.ray.o = collider.pos;
-            //if collider.material.is_diffuse() && depth > 0{    // 到达漫反射平面
             if collider.material.is_diffuse() {    // 到达漫反射平面
                 let mut new_photon = photon.clone();
                 new_photon.ray.d = photon.ray.d.mult(-1.0); // 方向设置为指向光源的方向
@@ -267,9 +235,9 @@ impl ProgressivePhotonTracer {
         coord[1] = photon.ray.o.y;
         coord[2] = photon.ray.o.z;
         // TODO
-        let mut result = self.hit_point_map.nearest(&coord, 10, &squared_euclidean).unwrap();
-        for mut vp in result.iter_mut() {
-            vp.handle(photon);
+        let result = self.hit_point_map.nearest(&coord, 10, &squared_euclidean).unwrap();
+        for (_, vp) in result.iter() {
+            vp.borrow_mut().handle(photon);
         }
     }
 }
