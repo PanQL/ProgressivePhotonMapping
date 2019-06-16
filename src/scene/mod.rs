@@ -10,8 +10,8 @@ use self::material::Material;
 use self::light::*;
 
 pub struct Scene {
-    objects : Vec<Box<dyn Primitive>>,  // 代表场景中的各个物体
-    illumiants : Vec<Arc<Light>>,   // 代表场景中的各个光源
+    objects : Vec<Box<Primitive + Send + Sync>>,  // 代表场景中的各个物体
+    illumiants : Vec<Arc<Light + Send + Sync>>,   // 代表场景中的各个光源
 }
 
 impl Scene {

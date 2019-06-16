@@ -9,61 +9,61 @@ use crate::scene::Scene;
 use crate::util::*;
 use crate::camera::Camera;
 use std::vec::Vec;
-use std::cell::RefCell;
-use std::sync::Arc;
+use std::sync::{ Arc, Mutex, mpsc::channel };
+use std::boxed::Box;
+use std::thread::spawn;
 use kdtree::kdtree::KdTree as Kd;
 use kdtree::distance::squared_euclidean;
 extern crate rand;
 pub use rand::Rng;
 
-pub struct Render {
+struct RenderInner {
     //class : TraceType,  // 渲染算法类型
     camera : Arc<Camera>,   // 相机，只读
-    picture: Vec<Color>,    // 所有线程结束之后才会写回,无需互斥
     width : usize,
     height : usize,
     scene: Arc<Scene>,  // 场景，只读
-    hit_point_map : Arc<RefCell<Kd<f64, Arc<RefCell<ViewPoint>>, [f64;3]>>>,
-    points : Arc<RefCell<Vec<Arc<RefCell<ViewPoint>>>>>,
-    photon_map : Arc<RefCell<Kd<f64, Photon, [f64;3]>>>,   // 光子图
-    photon_tracer : PhotonTracer,
+    hit_point_map : Arc<Mutex<Kd<f64, Box<ViewPoint>>, [f64;3]>>>,
+    points : Arc<Vec<Arc<Mutex<ViewPoint>>>>,
+    photon_map : Arc<Mutex<Kd<f64, Photon, [f64;3]>>>,   // 光子图
+    photon_tracer : Arc<Mutex<PhotonTracer>>,
     ray_tracer : RayTracer,
 }
 
-impl Render {
+impl RenderInner {
     pub fn new(camera : Camera, scene : Scene) -> Self {
         let scene = Arc::new(scene);
         let width = camera.width;
         let height = camera.height;
-        Render{
+        RenderInner{
             //class : TraceType::PPM,
             camera : Arc::new(camera) ,
-            picture: Vec::new(),
             width,
             height,
             scene : scene.clone(),
-            hit_point_map : Arc::new(RefCell::new(Kd::new(3))),
-            points : Arc::new(RefCell::new(Vec::new())),
-            photon_map : Arc::new(RefCell::new(Kd::new(3))),
-            photon_tracer : PhotonTracer::new(scene.clone()),
+            hit_point_map : Arc::new(Mutex::new(Kd::new(3))),
+            points : Arc::new(Vec::new()),
+            photon_map : Arc::new(Mutex::new(Kd::new(3))),
+            photon_tracer : Arc::new(Mutex::new(PhotonTracer::new(scene.clone()))),
             ray_tracer : RayTracer::new(scene),
         }
     }
 
     // 光线追踪阶段
-    pub fn ray_tarcing(&mut self, sampling : usize) {
-        let photon_map = self.photon_map.borrow();
+    pub fn ray_tarcing(&self, sampling : usize, picture : &mut Vec<Color>) {
         let f = | collider : &Collider| -> Color{
-            let mut coord : [f64;3] = [0.0, 0.0, 0.0];
-            coord[0] = collider.pos.x;
-            coord[1] = collider.pos.y;
-            coord[2] = collider.pos.z;
-            let result = photon_map.within(&coord, 1.0, &squared_euclidean).unwrap();
             let mut ret = Color::default();
-            for (_, photon) in result.iter() {
-                ret += photon.power;
+            if let Ok(photon_map) = self.photon_map.lock() {
+                let mut coord : [f64;3] = [0.0, 0.0, 0.0];
+                coord[0] = collider.pos.x;
+                coord[1] = collider.pos.y;
+                coord[2] = collider.pos.z;
+                let result = photon_map.within(&coord, 1.0, &squared_euclidean).unwrap();
+                for (_, photon) in result.iter() {
+                    ret += photon.power;
+                }
+                if !result.is_empty() { ret.div(result.len() as f64); }
             }
-            if !result.is_empty() { ret.div(result.len() as f64); }
             ret
         };
         let sampling2 : f64 = (sampling * sampling) as f64;
@@ -78,7 +78,7 @@ impl Render {
                         a_vec = ray.d + dx.mult(x as f64 / sampling as f64 - 0.5).mult(0.001) 
                             + dy.mult(y as f64 / sampling as f64 - 0.5).mult(0.001);
                         let a_ray = Ray { o : ray.o, d : a_vec };
-                        self.picture[j * self.width + i] += self.ray_tracer.trace_ray(&a_ray, 1.0, 0, f).div(sampling2);
+                        picture[j * self.width + i] += self.ray_tracer.trace_ray(&a_ray, 1.0, 0, f).div(sampling2);
                     }
                 }
             }
@@ -92,35 +92,64 @@ impl Render {
             coord[0] = photon.ray.o.x;
             coord[1] = photon.ray.o.y;
             coord[2] = photon.ray.o.z;
-            self.photon_map
-                .borrow_mut()
-                .add(coord, photon)
-                .unwrap();
+            if let Ok(mut p_map) = self.photon_map.lock() {
+                p_map.add(coord, photon).unwrap();
+            }
         };
         let number = self.scene.get_light_num();
         for i in 0..number {    // 按照光源顺序不断发射光子
             let illumiant = self.scene.get_light(i);
             for _ in 0..photon_number {
-                self.photon_tracer.photon_tracing(illumiant.gen_photon(), 0, f);
+                if let Ok(ph_tracer) = self.photon_tracer.lock() {
+                    ph_tracer.photon_tracing(illumiant.gen_photon(), 0, f);
+                }
             }
         }
     }
 
-    pub fn run(&mut self, times : usize, photon_num : usize) {
+}
+
+pub struct Render {
+    inner : Arc<RenderInner>,
+    picture: Vec<Color>,    // 所有线程结束之后才会写回,无需互斥
+    width : usize,
+    height : usize,
+}
+
+impl Render {
+    pub fn new(camera : Camera, scene : Scene) -> Self {
+        let width = camera.width;
+        let height = camera.height;
+        Render { inner : Arc::new(RenderInner::new(camera, scene)), picture : Vec::new(), width, height}
+    }
+    
+    pub fn run(&mut self, times : usize, photon_num : usize, thread_num : usize) {
         self.picture.resize_default(self.width * self.height);
-        for i in 0..times {
-            self.photon_tracing(photon_num);
-            info!("{}th round", i); 
+        let mut handle_vec = Vec::new();
+        for i in 0..thread_num {
+            let inner = self.inner.clone();
+            let (sender, receiver) = channel();
+            spawn(move ||{
+                for j in 0..times / thread_num {
+                    info!("{} thread {} round", i, j);
+                    inner.photon_tracing(photon_num);
+                }
+                sender.send(1).unwrap();
+            });
+            handle_vec.push(receiver);
         }
-        self.ray_tarcing(4);
+        for receiver in handle_vec.iter_mut() {
+            receiver.recv().unwrap();
+        }
+        self.inner.ray_tarcing(4, &mut self.picture);
         self.gen_png();
     }
 
-    fn gen_png(&mut self) {
+    fn gen_png(&self) {
         let buffer: &mut [u16] = &mut vec![0; 1024 * 768 * 3];
         //将结果写入png
-        let width = self.camera.width;
-        let height = self.camera.height;
+        let width = self.width;
+        let height = self.height;
         for i in 0..width {
             for j in 0..height {
                 let (r, g, b) = self.picture[j * width + i].to_u16();
