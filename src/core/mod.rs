@@ -23,10 +23,10 @@ struct RenderInner {
     width : usize,
     height : usize,
     scene: Arc<Scene>,  // 场景，只读
-    hit_point_map : Arc<Mutex<Kd<f64, Box<ViewPoint>>, [f64;3]>>>,
+    hit_point_map : Arc<Mutex<Kd<f64, Box<ViewPoint>, [f64;3]>>>,
     points : Arc<Vec<Arc<Mutex<ViewPoint>>>>,
     photon_map : Arc<Mutex<Kd<f64, Photon, [f64;3]>>>,   // 光子图
-    photon_tracer : Arc<Mutex<PhotonTracer>>,
+    photon_tracer : Arc<PhotonTracer>,
     ray_tracer : RayTracer,
 }
 
@@ -44,7 +44,7 @@ impl RenderInner {
             hit_point_map : Arc::new(Mutex::new(Kd::new(3))),
             points : Arc::new(Vec::new()),
             photon_map : Arc::new(Mutex::new(Kd::new(3))),
-            photon_tracer : Arc::new(Mutex::new(PhotonTracer::new(scene.clone()))),
+            photon_tracer : Arc::new(PhotonTracer::new(scene.clone())),
             ray_tracer : RayTracer::new(scene),
         }
     }
@@ -100,9 +100,7 @@ impl RenderInner {
         for i in 0..number {    // 按照光源顺序不断发射光子
             let illumiant = self.scene.get_light(i);
             for _ in 0..photon_number {
-                if let Ok(ph_tracer) = self.photon_tracer.lock() {
-                    ph_tracer.photon_tracing(illumiant.gen_photon(), 0, f);
-                }
+                self.photon_tracer.photon_tracing(illumiant.gen_photon(), 0, f);
             }
         }
     }
