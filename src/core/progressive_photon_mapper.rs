@@ -89,8 +89,8 @@ impl ProgressivePhotonTracer {
         self.class = TraceType::PPM;
 
         for i in 0..times {
-            self.photon_tracing_pass(10_0000);
-            self.total_photon += 10_0000.0;
+            self.photon_tracing_pass(100_0000);
+            self.total_photon += 100_0000.0;
             self.renew_hp_map();
             info!("{} rounds, {} photons ", i, self.total_photon);
         }

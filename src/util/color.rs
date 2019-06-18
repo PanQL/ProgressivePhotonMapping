@@ -26,13 +26,24 @@ impl Color {
     }
 
     pub fn to_int(&self) -> (u8, u8, u8) {
-        if !self.is_zero_vec() {
-            let temp = self.normalize();
-            return ((temp.r * 255.0) as u8,
-                    (temp.g * 255.0) as u8,
-                    (temp.b * 255.0) as u8);
-        }
-        (0u8, 0u8, 0u8)
+        let r = if self.r > EPS { 
+            ( self.r.clamp(0.0, 1.0).powf(1.0 / 2.2) * 65535.0 + 0.5 ) as u8 
+        } else { 
+            0u8 
+        };
+        let g = if self.g > EPS { 
+            ( self.g.clamp(0.0, 1.0).powf(1.0 / 2.2) * 65535.0 + 0.5 ) as u8 
+        } else { 
+            0u8 
+        };
+        let b = if self.b > EPS { 
+            ( self.b.clamp(0.0, 1.0).powf(1.0 / 2.2) * 65535.0 + 0.5 ) as u8 
+        } else { 
+            0u8 
+        };
+        info!("befor r is {} g is {} b is {}", self.r, self.g, self.b);
+        info!("after r is {} g is {} b is {}", r, g, b);
+        (r, g, b)
     }
 
     pub fn mult(&self, b: f64) -> Color {    // multi a number on this vec

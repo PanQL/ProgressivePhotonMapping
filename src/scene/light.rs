@@ -17,7 +17,7 @@ impl Light for DotLight {
     fn gen_photon(&self) -> Photon {
         Photon { 
             ray : Ray { o : self.pos, d : Vector3::random(), }, 
-            power : Color::new(1.0, 1.0, 1.0), 
+            power : self.color, 
         }
     }
 
