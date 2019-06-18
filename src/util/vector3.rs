@@ -133,9 +133,5 @@ impl Vector3 {
         z += self.z * ( axis.z.powi(2) + ( 1.0 - axis.z.powi(2)) * cost );
         Vector3 { x, y, z}
     }
-
-    //pub fn get_array(&self) -> &'static [f64;3] {
-        //[self.x.clone(), self.y.clone(), self.z.clone()]
-    //}
 }
 

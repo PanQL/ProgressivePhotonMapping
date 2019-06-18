@@ -26,7 +26,7 @@ impl Material {
          if self.diffuse > EPS {
              let mut rng = rand::thread_rng();
              let vert = vec_n.get_vertical_vec();
-             let theta = rng.gen::<f64>().sqrt().acos();
+             let theta = rng.gen_range(0.0, 2.0) * PI;
              let phi = rng.gen_range(0.0, 2.0) * PI;
              return Some(vec_n.rotate(&vert, theta).rotate(vec_n, phi).normalize());
          }

@@ -49,8 +49,10 @@ impl ViewPoint {
 
     pub fn handle(&mut self, photon : &Photon) {
         if self.pos.distance2(&photon.ray.o) < self.radius2 {
-            self.delta += 1.0;
-            self.flux_color += photon.power.mult(self.material.brdf(&photon.ray.d, &self.norm, &self.dire));
+            let g : f64 = (self.count + 0.7) / (self.count + 1.0);
+            self.count += 0.7;
+            self.radius2 = self.radius2 * g;
+            self.flux_color = ( self.flux_color + photon.power.mult(self.material.brdf(&photon.ray.d, &self.norm, &self.dire))).mult(g);
         }
     }
 

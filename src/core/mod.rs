@@ -3,7 +3,7 @@ pub mod path_tracer;
 pub mod photon_tracer;
 
 pub use progressive_photon_mapper::ProgressivePhotonTracer;
-pub use path_tracer::RayTracer;
+pub use path_tracer::{ PathTracer, RayTracer };
 pub use photon_tracer::PhotonTracer;
 use crate::scene::Scene;
 use crate::util::*;
@@ -28,16 +28,19 @@ struct RenderInner {
     photon_map : Arc<Mutex<Kd<f64, Photon, [f64;3]>>>,   // 光子图
     photon_tracer : Arc<PhotonTracer>,
     ray_tracer : RayTracer,
+    pub picture: Arc<Mutex<Vec<Color>>>,    // 所有线程结束之后才会写回,无需互斥
+    path_tracer : Arc<PathTracer>,
 }
 
 impl RenderInner {
-    pub fn new(camera : Camera, scene : Scene) -> Self {
-        let scene = Arc::new(scene);
+    pub fn new(camera : Arc<Camera>, scene : Arc<Scene>) -> Self {
         let width = camera.width;
         let height = camera.height;
+        let mut picture = Vec::<Color>::new();
+        picture.resize_default(camera.width * camera.height);
         RenderInner{
             //class : TraceType::PPM,
-            camera : Arc::new(camera) ,
+            camera,
             width,
             height,
             scene : scene.clone(),
@@ -45,12 +48,14 @@ impl RenderInner {
             points : Arc::new(Vec::new()),
             photon_map : Arc::new(Mutex::new(Kd::new(3))),
             photon_tracer : Arc::new(PhotonTracer::new(scene.clone())),
-            ray_tracer : RayTracer::new(scene),
+            ray_tracer : RayTracer::new(scene.clone()),
+            picture : Arc::new(Mutex::new(picture)),
+            path_tracer : Arc::new(PathTracer::new(scene))
         }
     }
 
     // 光线追踪阶段
-    pub fn ray_tarcing(&self, sampling : usize, picture : &mut Vec<Color>) {
+    pub fn ray_tarcing(&self, sampling : usize) {
         let f = | collider : &Collider| -> Color{
             let mut ret = Color::default();
             if let Ok(photon_map) = self.photon_map.lock() {
@@ -72,13 +77,12 @@ impl RenderInner {
                 let ray = self.camera.emitting(i, j);
                 let dx = ray.d.get_vertical_vec();
                 let dy = dx.cross(&ray.d);
-                let mut a_vec = Vector3::default();
                 for x in 0..sampling {
                     for y in 0..sampling {
-                        a_vec = ray.d + dx.mult(x as f64 / sampling as f64 - 0.5).mult(0.001) 
+                        let a_vec = ray.d + dx.mult(x as f64 / sampling as f64 - 0.5).mult(0.001) 
                             + dy.mult(y as f64 / sampling as f64 - 0.5).mult(0.001);
                         let a_ray = Ray { o : ray.o, d : a_vec };
-                        picture[j * self.width + i] += self.ray_tracer.trace_ray(&a_ray, 1.0, 0, f).div(sampling2);
+                        //picture[j * self.width + i] += self.ray_tracer.trace_ray(&a_ray, 1.0, 0, f).div(sampling2);
                     }
                 }
             }
@@ -105,24 +109,46 @@ impl RenderInner {
         }
     }
 
+    pub fn run_pt_thread(&self, sampling : u32) {
+        let sampling2 : f64 = (sampling * sampling) as f64;
+        for i in 0..self.camera.width {
+            for j in 0..self.camera.height {
+                let ray = self.camera.emitting(i, j);
+                let dx = ray.d.get_vertical_vec().normalize();
+                let dy = dx.cross(&ray.d).normalize();
+                let mut res = Color::default();
+                for _ in 0..sampling {
+                    let a_vec = ray.d + dx.mult(rand::thread_rng().gen_range(-0.01, 0.01)) 
+                        + dy.mult(rand::thread_rng().gen_range(-0.01, 0.01));
+                    let a_ray = Ray { o : ray.o, d : a_vec };
+                    res += self.path_tracer.trace_ray(&a_ray, 1.0, 0).div(sampling as f64);
+                }
+                if let Ok(mut picture) = self.picture.lock() {
+                    picture[j * self.width + i] += res;
+                }
+                info!("{} {} pixel", i, j);
+            }
+        }
+    }
 }
 
 pub struct Render {
     inner : Arc<RenderInner>,
-    picture: Vec<Color>,    // 所有线程结束之后才会写回,无需互斥
     width : usize,
     height : usize,
+    ppm : ProgressivePhotonTracer,
 }
 
 impl Render {
     pub fn new(camera : Camera, scene : Scene) -> Self {
         let width = camera.width;
         let height = camera.height;
-        Render { inner : Arc::new(RenderInner::new(camera, scene)), picture : Vec::new(), width, height}
+        let camera = Arc::new(camera);
+        let scene = Arc::new(scene);
+        Render { inner : Arc::new(RenderInner::new(camera.clone(), scene.clone())), width, height, ppm : ProgressivePhotonTracer::new(camera, scene),}
     }
     
-    pub fn run(&mut self, times : usize, photon_num : usize, thread_num : usize) {
-        self.picture.resize_default(self.width * self.height);
+    pub fn run_pm(&mut self, times : usize, photon_num : usize, thread_num : usize) {
         let mut handle_vec = Vec::new();
         for i in 0..thread_num {
             let inner = self.inner.clone();
@@ -139,7 +165,7 @@ impl Render {
         for receiver in handle_vec.iter_mut() {
             receiver.recv().unwrap();
         }
-        self.inner.ray_tarcing(4, &mut self.picture);
+        self.inner.ray_tarcing(4);
         self.gen_png();
     }
 
@@ -148,12 +174,15 @@ impl Render {
         //将结果写入png
         let width = self.width;
         let height = self.height;
-        for i in 0..width {
-            for j in 0..height {
-                let (r, g, b) = self.picture[j * width + i].to_u16();
-                buffer[(j * width + i) * 3] = r;
-                buffer[(j * width + i) * 3 + 1] = g;
-                buffer[(j * width + i) * 3 + 2] = b;
+        if let Ok(pic) = self.inner.picture.lock() {
+            for i in 0..width {
+                for j in 0..height {
+                    //let (r, g, b) = self.picture[j * width + i].to_u16();
+                    let (r, g, b) = pic[j * width + i].to_u16();
+                    buffer[(j * width + i) * 3] = r;
+                    buffer[(j * width + i) * 3 + 1] = g;
+                    buffer[(j * width + i) * 3 + 2] = b;
+                }
             }
         }
         unsafe {
@@ -161,5 +190,26 @@ impl Render {
                                std::slice::from_raw_parts_mut(buffer.as_mut_ptr() as *mut u8, buffer.len() * 2),
                                width as u32, height as u32, image::RGB(16)).unwrap()
         }
+    }
+
+    pub fn run_pt(&self, sampling : u32, threads : usize) {
+        let mut handle_vec = Vec::new();
+        for _ in 0..threads {
+            let inner = self.inner.clone();
+            let (sender, receiver) = channel();
+            spawn(move ||{
+                inner.run_pt_thread(sampling);
+                sender.send(1).unwrap();
+            });
+            handle_vec.push(receiver);
+        }
+        for receiver in handle_vec.iter_mut() {
+            receiver.recv().unwrap();
+        }
+        self.gen_png();
+    }
+
+    pub fn run_ppm(&mut self, times : usize) {
+        self.ppm.run(times);
     }
 }

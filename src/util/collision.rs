@@ -23,4 +23,5 @@ impl Collider {
 
 pub struct LightCollider {
     pub power : Color,
+    pub dist : f64,
 }
