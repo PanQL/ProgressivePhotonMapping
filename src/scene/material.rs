@@ -1,5 +1,8 @@
 use super::*;
 use crate::consts::EPS;
+extern crate rand;
+use rand::Rng;
+use std::f64::consts::PI;
 
 pub struct Material {
     pub color: Color,
@@ -19,12 +22,16 @@ impl Material {
      * ray_x : 入射的射线
      * ray_n : 法向量
      */
-     //pub fn cal_diffuse_ray(&self, vec_x : &Vector3, vec_n : &Vector3) -> Option<Vector3> {
-         //if self.diffuse > EPS {
-             //return Some(Vector3::random());
-         //}
-         //None
-     //}
+     pub fn cal_diffuse_ray(&self, vec_n : &Vector3) -> Option<Vector3> {
+         if self.diffuse > EPS {
+             let mut rng = rand::thread_rng();
+             let vert = vec_n.get_vertical_vec();
+             let theta = rng.gen_range(0.0, 2.0) * PI;
+             let phi = rng.gen_range(0.0, 2.0) * PI;
+             return Some(vec_n.rotate(&vert, theta).rotate(vec_n, phi).normalize());
+         }
+         None
+     }
 
      //计算镜面反射的单位方向
      //ray_x : 入射的射线

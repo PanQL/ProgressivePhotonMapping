@@ -11,5 +11,17 @@ pub struct Collider {
 }
 
 impl Collider {
+    pub fn get_diffuse_ray(&self) -> Option<Vector3> {
+        self.material.cal_diffuse_ray(&self.norm_vec)
+    }
+
+    pub fn get_specular_ray(&self) -> Option<Vector3> {
+        self.material.cal_specular_ray(&self.in_direction, &self.norm_vec)
+    }
+
 }
 
+pub struct LightCollider {
+    pub power : Color,
+    pub dist : f64,
+}

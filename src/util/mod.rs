@@ -1,5 +1,4 @@
 pub mod vector3;
-pub mod kd_tree;
 pub mod view_point;
 pub mod color;
 pub mod collision;
@@ -7,10 +6,9 @@ pub mod collision;
 pub use vector3::Vector3;
 pub use color::Color;
 pub use view_point::{ViewPoint, Photon};
-pub use kd_tree::KdTree;
-pub use collision::Collider;
+pub use collision::{ Collider, LightCollider };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Ray {
     pub o : Vector3,
     pub d : Vector3,
