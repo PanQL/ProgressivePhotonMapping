@@ -6,7 +6,7 @@ pub mod collision;
 pub use vector3::Vector3;
 pub use color::Color;
 pub use view_point::{ViewPoint, Photon};
-pub use collision::Collider;
+pub use collision::{ Collider, LightCollider };
 
 #[derive(Debug, Clone)]
 pub struct Ray {

@@ -1,7 +1,6 @@
-use super::scene::Scene;
-use super::util::*;
-use super::camera::Camera;
-use super::consts::*;
+use crate::scene::Scene;
+use crate::util::*;
+use crate::camera::Camera;
 use std::vec::Vec;
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -17,23 +16,24 @@ enum TraceType {
 }
 
 pub struct ProgressivePhotonTracer {
-    class : TraceType,
-    camera : Camera,
-    picture: Vec<Color>,
+    class : TraceType,  // 渲染算法类型
+    camera : Arc<Camera>,   // 相机，只读
+    picture: Vec<Color>,    // 所有线程结束之后才会写回,无需互斥
     width: usize,
     height: usize,
-    scene: Scene,
+    scene: Arc<Scene>,  // 场景，只读
     hit_point_map : Kd<f64, Arc<RefCell<ViewPoint>>, [f64;3]>,
     points : Vec<Arc<RefCell<ViewPoint>>>,
     photon_map : Kd<f64, Photon, [f64;3]>,   // 光子图
     total_photon : f64, // 发射的总光子数量
+    max_radius : f64,
 }
 
 impl ProgressivePhotonTracer {
-    pub fn new(camera : Camera, scene : Scene) -> Self {
+    pub fn new(camera : Arc<Camera>, scene : Arc<Scene>) -> Self {
         ProgressivePhotonTracer{
             class : TraceType::PPM,
-            camera ,
+            camera,
             picture: Vec::new(),
             width: 0,
             height: 0,
@@ -42,6 +42,7 @@ impl ProgressivePhotonTracer {
             points : Vec::new(),
             photon_map : Kd::new(3),
             total_photon : 0.0,
+            max_radius : 0.0,
         }
     }
 
@@ -72,7 +73,7 @@ impl ProgressivePhotonTracer {
                     collider.pos,
                     collider.material.cal_specular_ray(&ray.d, &collider.norm_vec).unwrap()
                 );
-                self.trace_ray(&spec_ray, pixel_x, pixel_y, weight * collider.material.specular); // TODO correct weight
+                self.trace_ray(&spec_ray, pixel_x, pixel_y, weight * collider.material.specular);
             }
         }
     }
@@ -84,20 +85,16 @@ impl ProgressivePhotonTracer {
 
         self.ray_tracing_pass(); // 从眼睛发射光线
         
-        self.class = TraceType::PM;
-        info!("here");
-        self.photon_tracing_pass(10_0000);
-        self.total_photon += 10_0000.0;
         self.cal_hp_radius();
-        info!("here");
         self.class = TraceType::PPM;
 
         for i in 0..times {
-            self.photon_tracing_pass(10_0000_i32.pow(i as u32) as usize);
-            self.total_photon += 10_0000_i32.pow(i as u32) as f64;
+            self.photon_tracing_pass(10_0000);
+            self.total_photon += 10_0000.0;
             self.renew_hp_map();
             info!("{} rounds, {} photons ", i, self.total_photon);
         }
+        
 
         self.gen_png();
     }
@@ -106,7 +103,6 @@ impl ProgressivePhotonTracer {
         if depth > 10 { return; }   // 最大递归深度
         if let Some(collider) = self.scene.intersect(&photon.ray) {
             photon.ray.o = collider.pos;
-            //if collider.material.is_diffuse() && depth > 0{    // 到达漫反射平面
             if collider.material.is_diffuse() {    // 到达漫反射平面
                 let mut new_photon = photon.clone();
                 new_photon.ray.d = photon.ray.d.mult(-1.0); // 方向设置为指向光源的方向
@@ -119,8 +115,7 @@ impl ProgressivePhotonTracer {
                         self.photon_map.add(coord, new_photon).unwrap();
                     }
                     TraceType::PPM => {
-                        self.insert_photon(&new_photon);
-                        //self.hit_point_map.walk_photon(&new_photon);   // 计算该光子对碰撞点的影响
+                        self.insert_photon(&new_photon);    // 计算该光子对碰撞点的影响
                     }
                 }
             }
@@ -142,7 +137,7 @@ impl ProgressivePhotonTracer {
 
         if let Some(spec_ray) = collider.get_specular_ray() {
             photon.ray.d = spec_ray;
-            photon.power = photon.power * collider.material.color;
+            photon.power = photon.power * collider.material.color.refresh_by_power();
             self.photon_tracing(photon, depth + 1);
         }
         return true;
@@ -157,7 +152,7 @@ impl ProgressivePhotonTracer {
 
         if let Some(diff_ray) = collider.get_diffuse_ray() {
             photon.ray.d = diff_ray;
-            photon.power = photon.power * collider.material.color.norm_max();
+            photon.power = photon.power * collider.material.color.refresh_by_power();
             self.photon_tracing(photon, depth + 1);
         }
         return true;
@@ -167,37 +162,32 @@ impl ProgressivePhotonTracer {
         let number = self.scene.get_light_num();
         for i in 0..number {
             let illumiant = self.scene.get_light(i);
-            for _ in 0..photon_number {
-                self.photon_tracing(illumiant.gen_photon(), 0);
+            for i in 0..photon_number {
+                let mut photon = illumiant.gen_photon();
+                self.photon_tracing(photon, 0);
             }
         }
     }
 
-    fn cal_hp_radius(&mut self ) {
-        let max_radius = 30.0;
-        let mut max_dist : f64 = 0.0;
-        let mut distance : f64 = 0.0;
-        let mut coord : [f64;3] = [0.0, 0.0, 0.0];
+    fn cal_hp_radius(&mut self ) {  // TODO， 可以根据视点的分布范围来估计半径
+        let mut max = Vector3::new(-1e20, -1e20, -1e20);
+        let mut min = Vector3::new(1e20, 1e20, 1e20);
         for vp_ptr in self.points.iter() {
             let mut vp = vp_ptr.borrow_mut();
-            coord[0] = vp.pos.x;
-            coord[1] = vp.pos.y;
-            coord[2] = vp.pos.z;
-            let result = self.photon_map.nearest(&coord, 10, &squared_euclidean).unwrap(); 
-            for (_, photon) in result.iter() {
-                let tmp_distance = vp.pos.distance2(&photon.ray.o);
-                if tmp_distance > distance { distance = tmp_distance }
-            }
-            if distance < max_radius { 
-                vp.radius2 = distance; 
-            } else {
-                vp.radius2 = max_radius;
-            }
-            vp.count = result.len() as f64;
-            if max_dist < distance { max_dist = distance; }
-            distance = 0.0;
+            if vp.pos.x > max.x { max.x = vp.pos.x } ;
+            if vp.pos.y > max.y { max.y = vp.pos.y } ;
+            if vp.pos.z > max.z { max.z = vp.pos.z } ;
+            if vp.pos.x < min.x { min.x = vp.pos.x } ;
+            if vp.pos.y < min.y { min.y = vp.pos.y } ;
+            if vp.pos.z < min.z { min.z = vp.pos.z } ;
         }
-        info!("distance is {}", max_dist);
+        info!("{:?}, {:?}", max, min);
+        let irad = (((max.x - min.x) + (max.y - min.y) + (max.z - min.z)) / 3.0) / ((self.width + self.height) as f64 / 2.0) * 2.0;
+        for vp_ptr in self.points.iter() {
+            let mut vp = vp_ptr.borrow_mut();
+            vp.radius2 = irad * irad;
+        }
+        self.max_radius = irad * irad;
     }
 
     fn gen_png(&mut self) {
@@ -225,10 +215,14 @@ impl ProgressivePhotonTracer {
         }
     }
 
-    fn renew_hp_map(&self) {
+    fn renew_hp_map(&mut self) {
+        let mut irad = 1e-20;
         for vp_ptr in self.points.iter() {
-            vp_ptr.borrow_mut().renew();
+            let mut vp = vp_ptr.borrow_mut();
+            if vp.radius2 > irad { irad = vp.radius2; }
         }
+        self.max_radius = irad;
+        info!("max radius2 is {}", irad);
     }
 
     fn insert_photon(&self, photon : &Photon) {
@@ -236,9 +230,9 @@ impl ProgressivePhotonTracer {
         coord[0] = photon.ray.o.x;
         coord[1] = photon.ray.o.y;
         coord[2] = photon.ray.o.z;
-        let result = self.hit_point_map.nearest(&coord, 100, &squared_euclidean).unwrap();
-        for (_, vp_ptr) in result.iter() {
-            vp_ptr.borrow_mut().handle(photon);
+        let result = self.hit_point_map.within(&coord, self.max_radius, &squared_euclidean).unwrap();
+        for (_, vp) in result.iter() {
+            vp.borrow_mut().handle(photon);
         }
     }
 }

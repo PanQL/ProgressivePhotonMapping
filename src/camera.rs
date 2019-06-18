@@ -5,6 +5,8 @@ pub struct Camera {
     direction: Vector3,
     pub width: usize,
     pub height: usize,
+    pub dx : Vector3,
+    pub dy : Vector3,
 }
 
 impl Camera {
@@ -14,6 +16,8 @@ impl Camera {
             direction: Vector3::new(0.0, 0.0, 0.0),
             width: 0,
             height: 0,
+            dx : Vector3::new(0.0, 0.0, 0.0),
+            dy : Vector3::new(0.0, 0.0, 0.0),
         }
     }
 
@@ -28,15 +32,17 @@ impl Camera {
 
     pub fn set_dir(&mut self, direction: Vector3) {
         self.direction = direction;
+        self.dx = self.direction.get_vertical_vec().mult(self.width as f64 / self.height as f64);
+        self.dy = self.dx.cross(&self.direction).mult(self.height as f64 / self.width as f64).mult(-1.0)
     }
 
     pub fn emitting(&self, i : usize, j : usize) -> Ray {
-        let cx = self.direction.get_vertical_vec().mult(self.width as f64 / self.height as f64);
-        let cy = cx.cross(&self.direction).mult(self.height as f64 / self.width as f64).mult(-1.0);
-        let d = cx.mult(i as f64 / self.width as f64 - 0.5)
-            + cy.mult(j as f64 / self.height as f64 - 0.5) + self.direction;
+        //let cx = self.direction.get_vertical_vec().mult(self.width as f64 / self.height as f64);
+        //let cy = cx.cross(&self.direction).mult(self.height as f64 / self.width as f64).mult(-1.0);
+        let d = self.dx.mult(i as f64 / self.width as f64 - 0.5)
+            + self.dy.mult(j as f64 / self.height as f64 - 0.5) + self.direction;
         Ray {
-            o: self.position + d.mult(100.0),
+            o: self.position + d.mult(140.0),
             d: d.normalize(),
         }
     }

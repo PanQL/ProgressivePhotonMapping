@@ -1,4 +1,5 @@
 use std::ops::{ Add, AddAssign, Mul };
+use crate::consts::*;
 
 #[derive(Clone, Default, Debug, Copy)]
 pub struct Color {
@@ -47,14 +48,24 @@ impl Color {
     }
 
     pub fn to_u16(&self) -> (u16, u16, u16) {
-        if !self.is_zero_vec() {
-            //let temp = self.normalize();
-            let m = self.r.max(self.g).max(self.b);
-            return ((self.r / m * 65535.0) as u16,
-                    (self.g / m * 65535.0) as u16,
-                    (self.b / m * 65535.0) as u16);
-        }
-        (0u16, 0u16, 0u16)
+        let r = if self.r > EPS { 
+            ( self.r.clamp(0.0, 1.0).powf(1.0 / 2.2) * 65535.0 + 0.5 ) as u16 
+        } else { 
+            0u16 
+        };
+        let g = if self.g > EPS { 
+            ( self.g.clamp(0.0, 1.0).powf(1.0 / 2.2) * 65535.0 + 0.5 ) as u16 
+        } else { 
+            0u16 
+        };
+        let b = if self.b > EPS { 
+            ( self.b.clamp(0.0, 1.0).powf(1.0 / 2.2) * 65535.0 + 0.5 ) as u16 
+        } else { 
+            0u16 
+        };
+        info!("befor r is {} g is {} b is {}", self.r, self.g, self.b);
+        info!("after r is {} g is {} b is {}", r, g, b);
+        (r, g, b)
     }
 
     pub fn power(&self) -> f64 {
@@ -63,6 +74,7 @@ impl Color {
 
     pub fn refresh_by_power(&self) -> Color {
         let power = (self.r + self.g + self.b) / 3.0;
+        if power < EPS { return Color::new(0.0, 0.0, 0.0); }
         Color { r : self.r / power, g : self.g / power, b : self.b / power }
     }
 

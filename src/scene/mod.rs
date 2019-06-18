@@ -10,8 +10,8 @@ use self::material::Material;
 use self::light::*;
 
 pub struct Scene {
-    objects : Vec<Box<dyn Primitive>>,  // 代表场景中的各个物体
-    illumiants : Vec<Arc<Light>>,   // 代表场景中的各个光源
+    objects : Vec<Box<Primitive + Send + Sync>>,  // 代表场景中的各个物体
+    illumiants : Vec<Arc<Light + Send + Sync>>,   // 代表场景中的各个光源
 }
 
 impl Scene {
@@ -20,53 +20,55 @@ impl Scene {
     }
 
     pub fn init(&mut self) {
-        //self.objects.push(Box::new(Plane::new(   //Left
-            //Vector3::new(0.0, 1.0, 0.0),
-            //4600.0,
-            //Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 0.5, 0.0, 0.0, 0.0))
-        //)));
+        self.objects.push(Box::new(Plane::new(   //Left
+            Vector3::new(0.0, 1.0, 0.0),
+            4600.0,
+            Arc::new(Material::new(Color::new(0.25, 0.25, 0.75), 0.5, 0.0, 0.0, 0.0))
+        )));
         self.objects.push(Box::new(Plane::new(   //Right
             Vector3::new(0.0, 1.0, 0.0),
-            5200.0,
-            Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 0.0, 0.5, 0.0, 0.0))
+            5400.0,
+            Arc::new(Material::new(Color::new(0.75, 0.25, 0.25), 0.5, 0.0, 0.0, 0.0))
         )));
         self.objects.push(Box::new(Plane::new(   // Bottom
             Vector3::new(0.0, 0.0, 1.0),
             100.0,
-            Arc::new(Material::new(Color::new(0.1, 0.1, 0.1), 0.3, 0.0, 0.0, 0.0))
+            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 0.3, 0.0, 0.0, 0.0))
         )));
-        //self.objects.push(Box::new(Plane::new(   // Top
-            //Vector3::new(0.0, 0.0, 1.0),
-            //800.0,
-            //Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 0.5, 0.0, 0.0, 0.0))
-        //)));
+        self.objects.push(Box::new(Plane::new(   // Top
+            Vector3::new(0.0, 0.0, 1.0),
+            800.0,
+            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 0.5, 0.0, 0.0, 0.0))
+        )));
         self.objects.push(Box::new(Plane::new(  //Back
             Vector3::new(1.0, 0.0, 0.0),
-            3000.0,
-            Arc::new(Material::new(Color::new(0.1, 0.1, 0.1), 0.5, 0.0, 0.0, 0.0))
+            4500.0,
+            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 0.5, 0.0, 0.0, 0.0))
         )));
         self.objects.push(Box::new(Plane::new(   // Front
             Vector3::new(1.0, 0.0, 0.0),
             6500.0,
-            Arc::new(Material::new(Color::new(0.5, 0.5, 0.5), 0.5, 0.0, 0.0, 0.0))
+            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 0.5, 0.0, 0.0, 0.0))
         )));
-        self.objects.push(Box::new(Sphere::new(
-            200.0,
-            Vector3::new(5000.0, 5000.0, 400.0),
-            Arc::new(Material::new(Color::new(0.0, 0x33 as f64 / 256.0, 0xff as f64 / 256.0), 0.3, 0.0, 0.0, 0.0)),
-            //Arc::new(Material::new(Color::new(0.5, 0.0, 0.0), 0.2, 0.8, 0.0, 0.0)),
-        )));
-        // 设置光源
-        //self.illumiants.push(Arc::new(DotLight::new(
-            //Vector3::new(5000.0, 1100.0, 600.0)
+        //self.objects.push(Box::new(Sphere::new(
+            //200.0,
+            //Vector3::new(5000.0, 5000.0, 300.0),
+            //Arc::new(Material::new(Color::new(0.99, 0.99, 0.99), 0.0, 0.5, 0.0, 0.0)),
+            ////Arc::new(Material::new(Color::new(0.5, 0.0, 0.0), 0.2, 0.8, 0.0, 0.0)),
         //)));
-        self.illumiants.push(Arc::new(AreaLight::new(
-            Vector3::new(4800.0, 5000.0, 800.0),
-            Vector3::new(1.0, 0.0, 0.0),
-            Vector3::new(0.0, 1.0, 0.0),
-            Vector3::new(0.0, 0.0, -1.0),
-            Color::new(1.0, 1.0, 1.0)
+        // 设置光源
+        self.illumiants.push(Arc::new(DotLight::new(
+            Vector3::new(5000.0, 5000.0, 750.0),
+            Color::new(10.0, 10.0, 10.0),
         )));
+        //self.illumiants.push(Arc::new(AreaLight::new(
+            //Vector3::new(5000.0, 5000.0, 800.0),
+            //Vector3::new(1.0, 0.0, 0.0),
+            //Vector3::new(0.0, 1.0, 0.0),
+            //Vector3::new(0.0, 0.0, -1.0),
+            //Color::new(1.0, 1.0, 1.0),
+            //100.0, 100.0
+        //)));
         //self.illumiants.push(Box::new(DotLight::new(
             //Vector3::new(18000.0, 1100.0, 9000.0), 100
         //)));
@@ -97,6 +99,28 @@ impl Scene {
                 norm_vec,
                 distance : t,
                 in_direction : ray.d,
+            });
+        } else {
+            return None;
+        }
+    }
+
+    pub fn intersect_light(&self, ray : &Ray) -> Option<LightCollider> {
+        let inf : f64 = 1e20;
+        let mut t : f64 = 1e20;
+        let mut id : usize = 0;
+        for i in 0..self.illumiants.len() {
+            if let Some(d) = self.illumiants[i].intersect(ray) {
+                if d < t {
+                    t = d;
+                    id = i;
+                }
+            }
+        }
+        if t < inf {
+            return Some(LightCollider {
+                power : self.illumiants[id].get_power(),
+                dist : t,
             });
         } else {
             return None;
