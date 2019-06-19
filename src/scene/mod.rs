@@ -37,7 +37,7 @@ impl Scene {
         )));
         self.objects.push(Box::new(Plane::new(   // Top
             Vector3::new(0.0, 0.0, 1.0),
-            800.0,
+            900.0,
             Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 0.5, 0.0, 0.0, 0.0))
         )));
         self.objects.push(Box::new(Plane::new(  //Back
@@ -62,16 +62,13 @@ impl Scene {
             //Color::new(10.0, 10.0, 10.0),
         //)));
         self.illumiants.push(Arc::new(AreaLight::new(
-            Vector3::new(5000.0, 5000.0, 800.0),
+            Vector3::new(5000.0, 5000.0, 900.0),
             Vector3::new(1.0, 0.0, 0.0),
             Vector3::new(0.0, 1.0, 0.0),
             Vector3::new(0.0, 0.0, -1.0),
             Color::new(10.0, 10.0, 10.0),
             200.0, 200.0
         )));
-        //self.illumiants.push(Box::new(DotLight::new(
-            //Vector3::new(18000.0, 1100.0, 9000.0), 100
-        //)));
     }
 
     // 求给定射线在场景中的碰撞点

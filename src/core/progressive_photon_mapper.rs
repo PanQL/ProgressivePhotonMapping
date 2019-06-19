@@ -162,8 +162,8 @@ impl ProgressivePhotonTracer {
         let number = self.scene.get_light_num();
         for i in 0..number {
             let illumiant = self.scene.get_light(i);
-            for i in 0..photon_number {
-                let mut photon = illumiant.gen_photon();
+            for _ in 0..photon_number {
+                let photon = illumiant.gen_photon();
                 self.photon_tracing(photon, 0);
             }
         }
@@ -218,7 +218,7 @@ impl ProgressivePhotonTracer {
     fn renew_hp_map(&mut self) {
         let mut irad = 1e-20;
         for vp_ptr in self.points.iter() {
-            let mut vp = vp_ptr.borrow_mut();
+            let vp = vp_ptr.borrow_mut();
             if vp.radius2 > irad { irad = vp.radius2; }
         }
         self.max_radius = irad;

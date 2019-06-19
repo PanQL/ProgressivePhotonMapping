@@ -37,7 +37,7 @@ impl RenderInner {
         let width = camera.width;
         let height = camera.height;
         let mut picture = Vec::<Color>::new();
-        picture.resize_default(camera.width * camera.height);
+        picture.resize(camera.width * camera.height, Color::default());
         RenderInner{
             //class : TraceType::PPM,
             camera,
@@ -56,22 +56,22 @@ impl RenderInner {
 
     // 光线追踪阶段
     pub fn ray_tarcing(&self, sampling : usize) {
-        let f = | collider : &Collider| -> Color{
-            let mut ret = Color::default();
-            if let Ok(photon_map) = self.photon_map.lock() {
-                let mut coord : [f64;3] = [0.0, 0.0, 0.0];
-                coord[0] = collider.pos.x;
-                coord[1] = collider.pos.y;
-                coord[2] = collider.pos.z;
-                let result = photon_map.within(&coord, 1.0, &squared_euclidean).unwrap();
-                for (_, photon) in result.iter() {
-                    ret += photon.power;
-                }
-                if !result.is_empty() { ret.div(result.len() as f64); }
-            }
-            ret
-        };
-        let sampling2 : f64 = (sampling * sampling) as f64;
+        //let f = | collider : &Collider| -> Color{
+            //let mut ret = Color::default();
+            //if let Ok(photon_map) = self.photon_map.lock() {
+                //let mut coord : [f64;3] = [0.0, 0.0, 0.0];
+                //coord[0] = collider.pos.x;
+                //coord[1] = collider.pos.y;
+                //coord[2] = collider.pos.z;
+                //let result = photon_map.within(&coord, 1.0, &squared_euclidean).unwrap();
+                //for (_, photon) in result.iter() {
+                    //ret += photon.power;
+                //}
+                //if !result.is_empty() { ret.div(result.len() as f64); }
+            //}
+            //ret
+        //};
+        //let sampling2 : f64 = (sampling * sampling) as f64;
         for i in 0..self.width {
             for j in 0..self.height {
                 let ray = self.camera.emitting(i, j);
@@ -79,9 +79,9 @@ impl RenderInner {
                 let dy = dx.cross(&ray.d);
                 for x in 0..sampling {
                     for y in 0..sampling {
-                        let a_vec = ray.d + dx.mult(x as f64 / sampling as f64 - 0.5).mult(0.001) 
-                            + dy.mult(y as f64 / sampling as f64 - 0.5).mult(0.001);
-                        let a_ray = Ray { o : ray.o, d : a_vec };
+                        //let a_vec = ray.d + dx.mult(x as f64 / sampling as f64 - 0.5).mult(0.001) 
+                            //+ dy.mult(y as f64 / sampling as f64 - 0.5).mult(0.001);
+                        //let a_ray = Ray { o : ray.o, d : a_vec };
                         //picture[j * self.width + i] += self.ray_tracer.trace_ray(&a_ray, 1.0, 0, f).div(sampling2);
                     }
                 }
