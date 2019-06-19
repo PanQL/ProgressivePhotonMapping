@@ -74,8 +74,6 @@ impl Color {
         } else { 
             0u16 
         };
-        info!("befor r is {} g is {} b is {}", self.r, self.g, self.b);
-        info!("after r is {} g is {} b is {}", r, g, b);
         (r, g, b)
     }
 

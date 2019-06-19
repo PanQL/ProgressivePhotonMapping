@@ -13,7 +13,6 @@ use std::sync::{ Arc, Mutex, mpsc::channel };
 use std::boxed::Box;
 use std::thread::spawn;
 use kdtree::kdtree::KdTree as Kd;
-use kdtree::distance::squared_euclidean;
 extern crate rand;
 pub use rand::Rng;
 
@@ -72,21 +71,21 @@ impl RenderInner {
             //ret
         //};
         //let sampling2 : f64 = (sampling * sampling) as f64;
-        for i in 0..self.width {
-            for j in 0..self.height {
-                let ray = self.camera.emitting(i, j);
-                let dx = ray.d.get_vertical_vec();
-                let dy = dx.cross(&ray.d);
-                for x in 0..sampling {
-                    for y in 0..sampling {
+        //for i in 0..self.width {
+            //for j in 0..self.height {
+                //let ray = self.camera.emitting(i, j);
+                //let dx = ray.d.get_vertical_vec();
+                //let dy = dx.cross(&ray.d);
+                //for x in 0..sampling {
+                    //for y in 0..sampling {
                         //let a_vec = ray.d + dx.mult(x as f64 / sampling as f64 - 0.5).mult(0.001) 
                             //+ dy.mult(y as f64 / sampling as f64 - 0.5).mult(0.001);
                         //let a_ray = Ray { o : ray.o, d : a_vec };
                         //picture[j * self.width + i] += self.ray_tracer.trace_ray(&a_ray, 1.0, 0, f).div(sampling2);
-                    }
-                }
-            }
-        }
+                    //}
+                //}
+            //}
+        //}
     }
 
     // 光子发射阶段
