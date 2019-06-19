@@ -21,5 +21,5 @@ fn main() {
     let mut render = Render::new(camera, scene);
     //render.run(50, 500_0000,5);
     //render.run_pt(10, 5);
-    render.run_ppm(3);
+    render.run_ppm(100);
 }
