@@ -37,12 +37,10 @@ impl Camera {
     }
 
     pub fn emitting(&self, i : usize, j : usize) -> Ray {
-        //let cx = self.direction.get_vertical_vec().mult(self.width as f64 / self.height as f64);
-        //let cy = cx.cross(&self.direction).mult(self.height as f64 / self.width as f64).mult(-1.0);
         let d = self.dx.mult(i as f64 / self.width as f64 - 0.5)
             + self.dy.mult(j as f64 / self.height as f64 - 0.5) + self.direction;
         Ray {
-            o: self.position + d.mult(140.0),
+            o: self.position + d.mult(1.0),
             d: d.normalize(),
         }
     }

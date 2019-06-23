@@ -42,11 +42,11 @@ impl Scene {
         )));
         // 设置光源
         self.illumiants.push(Arc::new(AreaLight::new(
-            Vector3::new(4900.0, 4900.0, 1400.0),
+            Vector3::new(4900.0, 4900.0, 800.0),
             Vector3::new(1.0, 0.0, 0.0),
             Vector3::new(0.0, 1.0, 0.0),
             Vector3::new(0.0, 0.0, -1.0),
-            Color::new(1.0, 1.0, 1.0),
+            Color::new(10.0, 10.0, 10.0),
             200.0, 200.0
         )));
     }

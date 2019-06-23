@@ -66,10 +66,8 @@ impl Material {
     // TODO 正确计算漫反射分量
     pub fn brdf(&self, ray_r : &Vector3, vec_n : &Vector3, ray_i : &Vector3) -> f64 {
         let mut ret = 0.0;
-        //let p = ray_r.dot(ray_i);
         let test = ray_r.dot(vec_n);
-        if self.is_diffuse() && test > EPS{ // 存在漫反射分量
-        //if self.is_diffuse() { // 存在漫反射分量
+        if self.is_diffuse() && test > EPS { // 存在漫反射分量
             ret += self.diffuse * test;
         }
         if let Some(refl) = self.cal_specular_ray(&ray_i.mult(-1.0), vec_n) {   // 存在镜面反射
