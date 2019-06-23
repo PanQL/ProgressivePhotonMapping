@@ -56,8 +56,8 @@ impl Light for AreaLight {
             if x * x + y * y < 4.0 && x * x + y * y > 1e-10 {
                 break;
             }
-            x = rng.gen_range(-2.0, 2.0);
-            y = rng.gen_range(-2.0, 2.0);
+            x = rng.gen_range(-1.0, 1.0);
+            y = rng.gen_range(-1.0, 1.0);
         }
         Photon { 
             ray : Ray { 

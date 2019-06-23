@@ -44,12 +44,13 @@ impl ProgressivePhotonTracer {
         for i in 0..self.width {
             for j in 0..self.height {
                 let ray = self.camera.emitting(i, j);
-                self.trace_ray(&ray, j, i, 1.0);
+                self.trace_ray(&ray, j, i, 1.0, 0);
             }
         }
     }
 
-    pub fn trace_ray(&mut self, ray: &Ray, pixel_x: usize, pixel_y: usize, weight : f64) {
+    pub fn trace_ray(&mut self, ray: &Ray, pixel_x: usize, pixel_y: usize, weight : f64, depth : u32) {
+        if depth > 20 { return; }
         if let Some(collider) = self.scene.intersect(ray) {
             if collider.material.is_diffuse() {
                 let vp = Arc::new(RefCell::new(
@@ -67,7 +68,7 @@ impl ProgressivePhotonTracer {
                     collider.pos,
                     collider.material.cal_specular_ray(&ray.d, &collider.norm_vec).unwrap()
                 );
-                self.trace_ray(&spec_ray, pixel_x, pixel_y, weight * collider.material.specular);
+                self.trace_ray(&spec_ray, pixel_x, pixel_y, weight * collider.material.specular, depth + 1);
             }
         }
     }

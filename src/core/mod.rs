@@ -109,7 +109,7 @@ impl RenderInner {
     }
 
     pub fn run_pt_thread(&self, sampling : u32) {
-        let sampling2 : f64 = (sampling * sampling) as f64;
+        let mut temp_res = vec![Color::default();self.camera.width * self.camera.height];
         for i in 0..self.camera.width {
             for j in 0..self.camera.height {
                 let ray = self.camera.emitting(i, j);
@@ -122,10 +122,15 @@ impl RenderInner {
                     let a_ray = Ray { o : ray.o, d : a_vec };
                     res += self.path_tracer.trace_ray(&a_ray, 1.0, 0).div(sampling as f64);
                 }
-                if let Ok(mut picture) = self.picture.lock() {
-                    picture[j * self.width + i] += res;
-                }
+                temp_res[j * self.camera.width + i] = res;
                 info!("{} {} pixel", i, j);
+            }
+        }
+        if let Ok(mut picture) = self.picture.lock() {
+            for i in 0..self.camera.width {
+                for j in 0..self.camera.height {
+                    picture[j * self.width + i] += temp_res[j * self.width + i];
+                }
             }
         }
     }
@@ -176,7 +181,6 @@ impl Render {
         if let Ok(pic) = self.inner.picture.lock() {
             for i in 0..width {
                 for j in 0..height {
-                    //let (r, g, b) = self.picture[j * width + i].to_u16();
                     let (r, g, b) = pic[j * width + i].to_u16();
                     buffer[(j * width + i) * 3] = r;
                     buffer[(j * width + i) * 3 + 1] = g;
