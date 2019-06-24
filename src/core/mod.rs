@@ -188,11 +188,6 @@ impl Render {
                 }
             }
         }
-        unsafe {
-            image::save_buffer("result.png", 
-                               std::slice::from_raw_parts_mut(buffer.as_mut_ptr() as *mut u8, buffer.len() * 2),
-                               width as u32, height as u32, image::RGB(16)).unwrap()
-        }
     }
 
     pub fn run_pt(&self, sampling : u32, threads : usize) {

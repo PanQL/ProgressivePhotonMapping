@@ -4,6 +4,7 @@ use crate::camera::Camera;
 use std::vec::Vec;
 use std::cell::RefCell;
 use std::sync::Arc;
+use std::path::Path;
 use kdtree::kdtree::KdTree as Kd;
 use kdtree::distance::squared_euclidean;
 extern crate rand;
@@ -95,9 +96,8 @@ impl ProgressivePhotonTracer {
         
         self.cal_hp_radius();
 
-        let mut power = 1.0;
         for i in 0..times {
-            self.photon_tracing_pass(10_0000, power);
+            self.photon_tracing_pass(10_0000);
             self.total_photon += 10_0000.0;
             self.renew_hp_map();
             info!("{} rounds, {} photons ", i, self.total_photon);
@@ -108,7 +108,7 @@ impl ProgressivePhotonTracer {
     }
 
     fn photon_tracing(&mut self, mut photon : Photon, depth : u32) {
-        if depth > 10 { return; }   // 最大递归深度
+        if depth > 10 || photon.power.power() < 1e-7 { return; }   // 最大递归深度
         if let Some(collider) = self.scene.intersect(&photon.ray) {
             photon.ray.o = collider.pos;
             if collider.material.is_diffuse() {    // 到达漫反射平面
@@ -155,13 +155,12 @@ impl ProgressivePhotonTracer {
         return true;
     }
 
-    fn photon_tracing_pass(&mut self, photon_number : usize, power : f64) {
+    fn photon_tracing_pass(&mut self, photon_number : usize) {
         let number = self.scene.get_light_num();
         for i in 0..number {
             let illumiant = self.scene.get_light(i);
             for _ in 0..photon_number {
-                let mut photon = illumiant.gen_photon();
-                photon.power = photon.power.mult(power);
+                let photon = illumiant.gen_photon();
                 self.photon_tracing(photon, 0);
             }
         }
@@ -189,34 +188,36 @@ impl ProgressivePhotonTracer {
     }
 
     fn gen_png(&mut self) {
-        let buffer: &mut [u16] = &mut vec![0; 1024 * 768 * 3];
-
+        let buffer: &mut [u8] = &mut vec![0; 1024 * 768 * 3];
         for vp_ptr in self.points.iter() {
             let vp = vp_ptr.borrow();
             let to_div = std::f64::consts::PI * self.total_photon * vp.radius2;
-            self.picture[vp.x * self.width + vp.y] += vp.flux_color.div(to_div) * vp.color.mult(vp.wgt); //TODO !!!
+            self.picture[vp.x * self.width + vp.y] += vp.flux_color.div(to_div); //TODO !!!
+            if vp.x == 315 && vp.y == 512 {
+                error!("{:?} {:?}", vp.flux_color, vp.flux_color.div(to_div));
+            }
         }
 
         //将结果写入png
         for i in 0..self.width {
             for j in 0..self.height {
-                let (r, g, b) = self.picture[j * self.width + i].to_u16();
+                let (r, g, b) = self.picture[j * self.width + i].to_u8();
                 buffer[(j * self.width + i) * 3] = r;
                 buffer[(j * self.width + i) * 3 + 1] = g;
                 buffer[(j * self.width + i) * 3 + 2] = b;
             }
         }
-        unsafe {
-            image::save_buffer("result.png", 
-                               std::slice::from_raw_parts_mut(buffer.as_mut_ptr() as *mut u8, buffer.len() * 2),
-                               self.width as u32, self.height as u32, image::RGB(16)).unwrap()
+        let path = &Path::new("result.png");
+        if let Err(_e) = lodepng::encode24_file(path, buffer, 1024, 768) {
+            panic!("encode error!");
         }
     }
 
     fn renew_hp_map(&mut self) {
         let mut irad = 1e-20;
         for vp_ptr in self.points.iter() {
-            let vp = vp_ptr.borrow_mut();
+            let mut vp = vp_ptr.borrow_mut();
+            vp.renew();
             if vp.radius2 > irad { irad = vp.radius2; }
         }
         self.max_radius = irad;

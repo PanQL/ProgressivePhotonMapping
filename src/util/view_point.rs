@@ -33,7 +33,7 @@ impl ViewPoint {
             dire : collider.in_direction.mult(-1.0), 
             x, 
             y, 
-            color : collider.material.color, 
+            color : collider.material.color.mult(wgt), 
             radius2: MAX_PH_RADIUS2, 
             count : 0.0, 
             delta : 0.0,
@@ -48,11 +48,12 @@ impl ViewPoint {
     }
 
     pub fn handle(&mut self, photon : &Photon) {
-        if self.pos.distance2(&photon.ray.o) < self.radius2 {
-            let g : f64 = (self.count + 0.7) / (self.count + 1.0);
-            self.count += 0.7;
-            self.radius2 = self.radius2 * g;
-            self.flux_color = ( self.flux_color + photon.power.mult(self.material.brdf(&photon.ray.d, &self.norm, &self.dire))).mult(g);
+        let dist = self.pos.distance2(&photon.ray.o);
+        if dist < self.radius2 {
+            self.delta += 1.0;
+            self.flux_color = self.flux_color + self.color * photon.power
+                .mult(self.material.brdf(&photon.ray.d, &self.norm, &self.dire))
+                .mult(1.0 - dist / self.radius2);
         }
     }
 
@@ -61,7 +62,7 @@ impl ViewPoint {
             let k = ( self.count as f64 + self.delta * 0.7) / ( self.count as f64 + self.delta);
             self.radius2 *= k;
             self.flux_color = self.flux_color.mult(k);
-            self.count += self.delta * k;
+            self.count += self.delta * 0.7;
             self.delta = 0.0;
         }
     }

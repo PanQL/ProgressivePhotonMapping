@@ -76,6 +76,6 @@ impl Material {
                 ret += self.specular * projection.powi(10);
             }
         }
-        ret
+        ret.clamp(0.0, 1.0)
     }
 }
