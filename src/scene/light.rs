@@ -52,17 +52,19 @@ impl Light for AreaLight {
         let mut rng = rand::thread_rng();
         let mut x : f64 = 0.0;
         let mut y : f64 = 0.0;
+        let mut z : f64 = 0.0;
         loop {
-            if x * x + y * y < 4.0 && x * x + y * y > 1e-10 {
+            if x * x + y * y + z * z < 1.0 && x * x + y * y > 1e-10 {
                 break;
             }
             x = rng.gen_range(-1.0, 1.0);
             y = rng.gen_range(-1.0, 1.0);
+            z = rng.gen_range(-1.0, 1.0);
         }
         Photon { 
             ray : Ray { 
                 o : self.pos + self.dx.mult(rng.gen_range(0.0,self.width)) + self.dy.mult(rng.gen_range(0.0,self.height)), 
-                d : (self.dir + self.dx.mult(x) + self.dy.mult(y)).normalize(), 
+                d : Vector3::new(x, y, z).normalize(), 
             }, 
             power : self.color, 
         }

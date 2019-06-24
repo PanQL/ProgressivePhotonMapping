@@ -19,6 +19,10 @@ impl Collider {
         self.material.cal_specular_ray(&self.in_direction, &self.norm_vec)
     }
 
+    pub fn get_refractive_ray(&self, refracted : bool) -> Option<Vector3> {
+        self.material.cal_refractive_ray(&self.in_direction, &self.norm_vec, refracted)
+    }
+
 }
 
 pub struct LightCollider {

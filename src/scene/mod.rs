@@ -20,35 +20,59 @@ impl Scene {
     }
 
     pub fn init(&mut self) {
+        self.objects.push(Box::new(Plane::new(   // Left
+            Vector3::new(0.0, 1.0, 0.0),
+            6000.0,
+            Arc::new(Material::new(Color::new(0.25, 0.25, 0.75), 1.0, 0.0, 0.0, 2.0))
+        )));
+        self.objects.push(Box::new(Plane::new(   // Right
+            Vector3::new(0.0, 1.0, 0.0),
+            4000.0,
+            Arc::new(Material::new(Color::new(0.75, 0.25, 0.25), 1.0, 0.0, 0.0, 2.0))
+        )));
+        self.objects.push(Box::new(Plane::new(   // Top
+            Vector3::new(0.0, 0.0, 1.0),
+            2000.0,
+            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 2.0))
+        )));
         self.objects.push(Box::new(Plane::new(   // Bottom
             Vector3::new(0.0, 0.0, 1.0),
             100.0,
-            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 0.0))
+            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 2.0))
         )));
         self.objects.push(Box::new(Plane::new(  //Back
             Vector3::new(1.0, 0.0, 0.0),
             4500.0,
-            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 0.0))
+            Arc::new(Material::new(Color::new(0.25, 0.75, 0.25), 1.0, 0.0, 0.0, 2.0))
         )));
         self.objects.push(Box::new(Sphere::new(
-            200.0,
+            120.0,
             Vector3::new(5000.0, 5000.0, 300.0),
-            Arc::new(Material::new(Color::new(0.75, 0.25, 0.25), 1.0, 0.0, 0.0, 0.0)),
+            Arc::new(Material::new(Color::new(0.75, 0.25, 0.25), 1.0, 0.0, 0.0, 1.2)),
         )));
         self.objects.push(Box::new(Sphere::new(
             100.0,
             Vector3::new(5100.0, 5300.0, 200.0),
-            Arc::new(Material::new(Color::new(0.25, 0.25, 0.75), 1.0, 0.0, 0.0, 0.0)),
+            Arc::new(Material::new(Color::new(0.25, 0.25, 0.75), 0.0, 0.0, 1.0, 1.3)),
+        )));
+        self.objects.push(Box::new(Sphere::new(
+            100.0,
+            Vector3::new(5100.0, 4700.0, 200.0),
+            Arc::new(Material::new(Color::new(0.25, 0.75, 0.25), 0.0, 1.0, 0.0, 1.3)),
         )));
         // 设置光源
         self.illumiants.push(Arc::new(AreaLight::new(
-            Vector3::new(4800.0, 4800.0, 800.0),
+            Vector3::new(4900.0, 4900.0, 800.0),
             Vector3::new(1.0, 0.0, 0.0),
             Vector3::new(0.0, 1.0, 0.0),
             Vector3::new(0.0, 0.0, -1.0),
-            Color::new(10_0000.0, 10_0000.0, 10_0000.0),
-            400.0, 400.0
+            Color::new(50_0000.0, 50_0000.0, 50_0000.0),
+            200.0, 200.0
         )));
+        //self.illumiants.push(Arc::new(DotLight::new(
+            //Vector3::new(4800.0, 5100.0, 800.0),
+            //Color::new(50_0000.0, 50_0000.0, 50_0000.0),
+        //)));
     }
 
     // 求给定射线在场景中的碰撞点

@@ -45,12 +45,12 @@ impl ProgressivePhotonTracer {
         for i in 0..self.width {
             for j in 0..self.height {
                 let ray = self.camera.emitting(i, j);
-                self.trace_ray(&ray, j, i, 1.0, 0);
+                self.trace_ray(&ray, j, i, 1.0, 0, false);
             }
         }
     }
 
-    pub fn trace_ray(&mut self, ray: &Ray, pixel_x: usize, pixel_y: usize, weight : f64, depth : u32) {
+    pub fn trace_ray(&mut self, ray: &Ray, pixel_x: usize, pixel_y: usize, weight : f64, depth : u32, refracted : bool) {
         if depth > 20 { return; }
         let lgt_collider = self.scene.intersect_light(ray);
         let obj_collider = self.scene.intersect(ray);
@@ -79,7 +79,16 @@ impl ProgressivePhotonTracer {
                     collider.pos,
                     collider.material.cal_specular_ray(&ray.d, &collider.norm_vec).unwrap()
                 );
-                self.trace_ray(&spec_ray, pixel_x, pixel_y, weight * collider.material.specular, depth + 1);
+                self.trace_ray(&spec_ray, pixel_x, pixel_y, weight * collider.material.specular, depth + 1, refracted);
+            }
+            if collider.material.is_refractive() {
+                if let Some(dir) = collider.material.cal_refractive_ray(&ray.d, &collider.norm_vec, refracted) {
+                    let spec_ray = Ray::new(
+                        collider.pos,
+                        dir
+                    );
+                    self.trace_ray(&spec_ray, pixel_x, pixel_y, weight * collider.material.refraction, depth + 1, !refracted);
+                }
             }
         } else if lgt_collider.is_some() {  // 只与光源相交
             let lgt = lgt_collider.unwrap();
@@ -107,7 +116,7 @@ impl ProgressivePhotonTracer {
         self.gen_png();
     }
 
-    fn photon_tracing(&mut self, mut photon : Photon, depth : u32) {
+    fn photon_tracing(&mut self, mut photon : Photon, depth : u32, refracted : bool) {
         if depth > 10 || photon.power.power() < 1e-7 { return; }   // 最大递归深度
         if let Some(collider) = self.scene.intersect(&photon.ray) {
             photon.ray.o = collider.pos;
@@ -118,14 +127,15 @@ impl ProgressivePhotonTracer {
             }
 
             let mut prob = 1.0;
-            if !self.photon_diffusion(&collider, photon.clone(), depth, &mut prob) {
-                if !self.photon_reflection(&collider, photon.clone(), depth, &mut prob) {
+            if !self.photon_diffusion(&collider, photon.clone(), depth, &mut prob, refracted) {
+                if !self.photon_reflection(&collider, photon.clone(), depth, &mut prob, refracted) {
+                    self.photon_refraction(&collider, photon.clone(), depth, &mut prob, refracted);
                 }
             }
         }
     }
 
-    fn photon_reflection(&mut self, collider : &Collider, mut photon : Photon, depth : u32, prob : &mut f64) -> bool {
+    fn photon_reflection(&mut self, collider : &Collider, mut photon : Photon, depth : u32, prob : &mut f64, refracted : bool) -> bool {
         let eta = collider.material.specular * collider.material.color.power();
         if eta < rand::thread_rng().gen_range(0.0, 1.0) * ( *prob) {
             *prob -= eta;
@@ -135,12 +145,12 @@ impl ProgressivePhotonTracer {
         if let Some(spec_ray) = collider.get_specular_ray() {
             photon.ray.d = spec_ray;
             photon.power = photon.power * collider.material.color.refresh_by_power();
-            self.photon_tracing(photon, depth + 1);
+            self.photon_tracing(photon, depth + 1,refracted);
         }
         return true;
     }
 
-    fn photon_diffusion(&mut self, collider : &Collider, mut photon : Photon, depth : u32, prob : &mut f64) -> bool {
+    fn photon_diffusion(&mut self, collider : &Collider, mut photon : Photon, depth : u32, prob : &mut f64, refracted : bool) -> bool {
         let eta = collider.material.diffuse * collider.material.color.power();
         if eta < rand::thread_rng().gen_range(0.0, 1.0) * ( *prob) {
             *prob -= eta;
@@ -150,18 +160,33 @@ impl ProgressivePhotonTracer {
         if let Some(diff_ray) = collider.get_diffuse_ray() {
             photon.ray.d = diff_ray;
             photon.power = photon.power * collider.material.color.refresh_by_power();
-            self.photon_tracing(photon, depth + 1);
+            self.photon_tracing(photon, depth + 1,refracted);
         }
         return true;
     }
 
+    fn photon_refraction(&mut self, collider : &Collider, mut photon : Photon, depth : u32, prob : &mut f64, refracted : bool) -> bool {
+        let eta = collider.material.refraction * collider.material.color.power();
+        if eta < rand::thread_rng().gen_range(0.0, 1.0) * ( *prob) {
+            *prob -= eta;
+            return false;
+        }
+
+        if let Some(refr_ray) = collider.get_refractive_ray(refracted) {
+            photon.ray.d = refr_ray;
+            photon.power = photon.power * collider.material.color.refresh_by_power();
+            self.photon_tracing(photon, depth + 1, !refracted);
+        }
+        return true;
+    }
+    
     fn photon_tracing_pass(&mut self, photon_number : usize) {
         let number = self.scene.get_light_num();
         for i in 0..number {
             let illumiant = self.scene.get_light(i);
             for _ in 0..photon_number {
                 let photon = illumiant.gen_photon();
-                self.photon_tracing(photon, 0);
+                self.photon_tracing(photon, 0, false);
             }
         }
     }
