@@ -37,8 +37,8 @@ impl Scene {
         self.objects.push(Box::new(Plane::new(   // Top
             2,
             Vector3::new(0.0, 0.0, 1.0),
-            810.0,
-            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 2.0)),
+            800.0,
+            Arc::new(Material::new(Color::new(0.99, 0.99, 0.99), 0.1, 0.9, 0.0, 2.0)),
             None
         )));
         self.objects.push(Box::new(Plane::new(   // Bottom

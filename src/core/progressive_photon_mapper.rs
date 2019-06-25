@@ -1,14 +1,13 @@
 use crate::scene::Scene;
 use crate::util::*;
 use crate::camera::Camera;
+use crate::consts::EPS;
 use std::vec::Vec;
 use std::cell::RefCell;
 use std::sync::Arc;
 use std::path::Path;
 use kdtree::kdtree::KdTree as Kd;
 use kdtree::distance::squared_euclidean;
-extern crate rand;
-
 use rand::Rng;
 
 
@@ -95,7 +94,7 @@ impl ProgressivePhotonTracer {
             let collider = obj_collider.unwrap();
             if lgt_collider.is_some() {
                 let lgt = lgt_collider.unwrap();
-                if lgt.dist < collider.distance { // 光源的交点更近
+                if (collider.distance - lgt.dist) < EPS { // 光源的交点更近
                     self.picture[pixel_pos] = lgt.power.mult(0.7);
                     return;
                 }

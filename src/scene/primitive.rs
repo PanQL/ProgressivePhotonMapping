@@ -131,11 +131,11 @@ impl Plane {
                 let mut result : Option<Vec<u8>>  = None;
                 if let Some(file_name) = name {
                     let image = lodepng::decode32_file(file_name).unwrap();
-                    let res = image.buffer.as_bytes().to_vec();
+                    let mut res = image.buffer.as_bytes().to_vec();
                     let mut new_vec = Vec::new();
-                    for idx in 0..res.len() {
+                    for (idx, item) in res.iter_mut().enumerate() {
                         if (idx + 1) % 4 != 0 {
-                            new_vec.push(res[idx]);
+                            new_vec.push(*item);
                         }
                     }
                     result = Some(new_vec);
