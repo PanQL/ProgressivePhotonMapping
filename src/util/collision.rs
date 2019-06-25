@@ -9,6 +9,7 @@ pub struct Collider {
     pub distance : f64,
     pub in_direction : Vector3,
     pub hash_value : u64,
+    pub color : Color,
 }
 
 impl Collider {

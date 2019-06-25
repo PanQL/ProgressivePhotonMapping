@@ -24,37 +24,43 @@ impl Scene {
             0,
             Vector3::new(0.0, 1.0, 0.0),
             5500.0,
-            Arc::new(Material::new(Color::new(0.25, 0.25, 0.75), 1.0, 0.0, 0.0, 2.0))
+            Arc::new(Material::new(Color::new(0.75, 0.25, 0.25), 1.0, 0.0, 0.0, 2.0)),
+            None
         )));
         self.objects.push(Box::new(Plane::new(   // Right
             1,
             Vector3::new(0.0, 1.0, 0.0),
             4500.0,
-            Arc::new(Material::new(Color::new(0.75, 0.25, 0.25), 1.0, 0.0, 0.0, 2.0))
+            Arc::new(Material::new(Color::new(0.25, 0.25, 0.75), 1.0, 0.0, 0.0, 2.0)),
+            None
         )));
         self.objects.push(Box::new(Plane::new(   // Top
             2,
             Vector3::new(0.0, 0.0, 1.0),
             810.0,
-            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 2.0))
+            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 2.0)),
+            None
         )));
         self.objects.push(Box::new(Plane::new(   // Bottom
             3,
             Vector3::new(0.0, 0.0, 1.0),
             100.0,
-            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 2.0))
+            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 2.0)),
+            Some("floor.png")
         )));
         self.objects.push(Box::new(Plane::new(  //Back
             4,
             Vector3::new(1.0, 0.0, 0.0),
             4500.0,
-            Arc::new(Material::new(Color::new(0.25, 0.75, 0.25), 1.0, 0.0, 0.0, 2.0))
+            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 2.0)),
+            None
         )));
         self.objects.push(Box::new(Plane::new(  //Front
             5,
             Vector3::new(1.0, 0.0, 0.0),
             6100.0,
-            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 2.0))
+            Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 2.0)),
+            None,
         )));
         self.objects.push(Box::new(Sphere::new(
             6,
@@ -80,7 +86,7 @@ impl Scene {
             Vector3::new(1.0, 0.0, 0.0),
             Vector3::new(0.0, 1.0, 0.0),
             Vector3::new(0.0, 0.0, -1.0),
-            Color::new(50_0000.0, 50_0000.0, 50_0000.0),
+            Color::new(25.0, 25.0, 25.0),
             200.0, 200.0
         )));
         //self.illumiants.push(Arc::new(DotLight::new(
@@ -115,6 +121,7 @@ impl Scene {
                 distance : t,
                 in_direction : ray.d,
                 hash_value : self.objects[id].get_hash(),
+                color : self.objects[id].get_color(&position),
             });
         } else {
             return None;

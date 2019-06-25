@@ -5,7 +5,7 @@ use rand::Rng;
 use std::f64::consts::PI;
 
 pub struct Material {
-    pub color: Color,
+    color: Color,
     pub diffuse : f64,
     pub specular : f64,
     pub refraction : f64,
@@ -92,5 +92,9 @@ impl Material {
             }
         }
         ret.clamp(0.0, 1.0)
+    }
+
+    pub fn color(&self) -> Color {
+        self.color
     }
 }

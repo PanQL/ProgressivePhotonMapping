@@ -5,6 +5,7 @@
 #[macro_use] extern crate log;
 extern crate env_logger;
 extern crate lodepng;
+extern crate rgb;
 pub mod util;
 pub mod scene;
 pub mod camera;

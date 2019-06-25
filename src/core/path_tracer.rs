@@ -32,7 +32,7 @@ impl PathTracer {
                     collider.pos,
                     collider.material.cal_diffuse_ray(&collider.norm_vec).unwrap()
                 );
-                ret += self.trace_ray(&diff_ray, weight * collider.material.diffuse, depth + 1) * collider.material.color; // TODO correct weight
+                ret += self.trace_ray(&diff_ray, weight * collider.material.diffuse, depth + 1) * collider.color; // TODO correct weight
             }
             if collider.material.is_specular() {
                 let spec_ray = Ray::new(
@@ -59,7 +59,7 @@ impl RayTracer {
         let mut ret = Color::default();
         if let Some(collider) = self.scene.intersect(ray) {
             if collider.material.is_diffuse() {
-                ret += func(&collider) * collider.material.color.mult(weight);
+                ret += func(&collider) * collider.color.mult(weight);
             }
             if collider.material.is_specular() {
                 let spec_ray = Ray::new(

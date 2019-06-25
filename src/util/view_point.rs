@@ -30,7 +30,7 @@ impl ViewPoint {
             norm : collider.norm_vec, 
             dire : collider.in_direction.mult(-1.0), 
             px_pos,
-            color : collider.material.color.mult(wgt), 
+            color : collider.color.mult(wgt), 
             radius2: MAX_PH_RADIUS2, 
             count : 0.0, 
             delta : 0.0,

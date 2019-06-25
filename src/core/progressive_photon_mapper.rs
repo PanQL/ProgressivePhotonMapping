@@ -180,7 +180,7 @@ impl ProgressivePhotonTracer {
     }
 
     fn photon_reflection(&mut self, collider : &Collider, mut photon : Photon, depth : u32, prob : &mut f64, refracted : bool) -> bool {
-        let eta = collider.material.specular * collider.material.color.power();
+        let eta = collider.material.specular * collider.color.power();
         if eta < rand::thread_rng().gen_range(0.0, 1.0) * ( *prob) {
             *prob -= eta;
             return false;
@@ -188,14 +188,14 @@ impl ProgressivePhotonTracer {
 
         if let Some(spec_ray) = collider.get_specular_ray() {
             photon.ray.d = spec_ray;
-            photon.power = photon.power * collider.material.color.refresh_by_power();
+            photon.power = photon.power * collider.color.refresh_by_power();
             self.photon_tracing(photon, depth + 1,refracted);
         }
         return true;
     }
 
     fn photon_diffusion(&mut self, collider : &Collider, mut photon : Photon, depth : u32, prob : &mut f64, refracted : bool) -> bool {
-        let eta = collider.material.diffuse * collider.material.color.power();
+        let eta = collider.material.diffuse * collider.color.power();
         if eta < rand::thread_rng().gen_range(0.0, 1.0) * ( *prob) {
             *prob -= eta;
             return false;
@@ -203,14 +203,14 @@ impl ProgressivePhotonTracer {
 
         if let Some(diff_ray) = collider.get_diffuse_ray() {
             photon.ray.d = diff_ray;
-            photon.power = photon.power * collider.material.color.refresh_by_power();
+            photon.power = photon.power * collider.color.refresh_by_power();
             self.photon_tracing(photon, depth + 1,refracted);
         }
         return true;
     }
 
     fn photon_refraction(&mut self, collider : &Collider, mut photon : Photon, depth : u32, prob : &mut f64, refracted : bool) -> bool {
-        let eta = collider.material.refraction * collider.material.color.power();
+        let eta = collider.material.refraction * collider.color.power();
         if eta < rand::thread_rng().gen_range(0.0, 1.0) * ( *prob) {
             *prob -= eta;
             return false;
@@ -218,7 +218,7 @@ impl ProgressivePhotonTracer {
 
         if let Some(refr_ray) = collider.get_refractive_ray(refracted) {
             photon.ray.d = refr_ray;
-            photon.power = photon.power * collider.material.color.refresh_by_power();
+            photon.power = photon.power * collider.color.refresh_by_power();
             self.photon_tracing(photon, depth + 1, !refracted);
         }
         return true;
@@ -229,7 +229,8 @@ impl ProgressivePhotonTracer {
         for i in 0..number {
             let illumiant = self.scene.get_light(i);
             for _ in 0..photon_number {
-                let photon = illumiant.gen_photon();
+                let mut photon = illumiant.gen_photon();
+                photon.power = photon.power.mult(photon_number as f64);
                 self.photon_tracing(photon, 0, false);
             }
         }

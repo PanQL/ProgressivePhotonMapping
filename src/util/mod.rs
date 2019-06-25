@@ -26,7 +26,5 @@ impl Ray {
 pub fn calculate_hash<T : Hash>(t : &T) -> u64 {
     let mut s = DefaultHasher::new();
     t.hash(&mut s);
-    let res = s.finish();
-    info!("{}", res);
-    res
+    s.finish()
 }

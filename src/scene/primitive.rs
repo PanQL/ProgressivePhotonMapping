@@ -2,11 +2,12 @@ use super::material::*;
 use crate::util::*;
 use std::sync::Arc;
 use crate::consts::EPS;
+use rgb::*;
 
 pub trait Primitive {
     fn intersect(&self, r : &Ray) -> Option<f64>;
     fn get_normal_vec(&self, pos : &Vector3) -> Vector3;
-    fn get_color(&self) -> Color;
+    fn get_color(&self, pos : &Vector3) -> Color;
     fn get_material(&self) -> Arc<Material>;
     fn get_hash(&self) -> u64;
 }
@@ -43,8 +44,9 @@ impl Primitive for Sphere {
         ret
     }
 
-    fn get_color(&self) -> Color {
-        self.material.color
+    fn get_color(&self, pos : &Vector3) -> Color {
+        // TODO 纹理贴图
+        self.material.color()
     }
 
     fn get_material(&self) -> Arc<Material>{
@@ -72,6 +74,7 @@ pub struct Plane {
     distance : f64,
     material : Arc<Material>,
     hash_value : u64,
+    texture : Option<Vec<u8>>,
 }
 
 impl Primitive for Plane {
@@ -92,8 +95,20 @@ impl Primitive for Plane {
         self.direction
     }
 
-    fn get_color(&self) -> Color {
-        self.material.color
+    fn get_color(&self, pos : &Vector3) -> Color {
+        // TODO 纹理贴图
+        if self.texture.is_some() {
+            let dx = self.direction.get_vertical_vec();
+            let dy = dx.cross(&self.direction);
+            let texture = self.texture.as_ref().unwrap();
+            let ix = pos.dot(&dx).abs() as usize % 600;
+            let iy = pos.dot(&dy).abs() as usize % 600;
+            let r : f64 = texture[(ix * 600 + iy) * 3] as f64 / 255.0;
+            let g : f64 = texture[(ix * 600 + iy) * 3 + 1] as f64 / 255.0;
+            let b : f64 = texture[(ix * 600 + iy) * 3 + 2] as f64 / 255.0;
+            return Color::new(r, g, b);
+        }
+        self.material.color()
     }
 
     fn get_material(&self) -> Arc<Material> {
@@ -106,7 +121,27 @@ impl Primitive for Plane {
 }
 
 impl Plane {
-    pub fn new(id : usize, direction : Vector3, distance : f64, material : Arc<Material>) -> Self {
-        Plane { direction : direction.normalize(), distance , material, hash_value : calculate_hash(&id) }
+    pub fn new(id : usize, direction : Vector3, distance : f64, material : Arc<Material>, name : Option<&str>) -> Self {
+        Plane { 
+            direction : direction.normalize(), 
+            distance , 
+            material, 
+            hash_value : calculate_hash(&id), 
+            texture : {
+                let mut result : Option<Vec<u8>>  = None;
+                if let Some(file_name) = name {
+                    let image = lodepng::decode32_file(file_name).unwrap();
+                    let res = image.buffer.as_bytes().to_vec();
+                    let mut new_vec = Vec::new();
+                    for idx in 0..res.len() {
+                        if (idx + 1) % 4 != 0 {
+                            new_vec.push(res[idx]);
+                        }
+                    }
+                    result = Some(new_vec);
+                }
+                result
+            }
+        }
     }
 }

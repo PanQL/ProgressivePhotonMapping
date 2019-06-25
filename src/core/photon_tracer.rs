@@ -32,7 +32,7 @@ impl PhotonTracer {
 
     fn photon_reflection<F : Copy>(&self, collider : &Collider, mut photon : Photon, depth : u32, prob : &mut f64, func : F) -> bool 
         where F : FnMut(Photon) {
-        let eta = collider.material.specular * collider.material.color.power();
+        let eta = collider.material.specular * collider.color.power();
         if eta < rand::thread_rng().gen_range(0.0, 1.0) * ( *prob) {
             *prob -= eta;
             return false;
@@ -40,7 +40,7 @@ impl PhotonTracer {
 
         if let Some(spec_ray) = collider.get_specular_ray() {
             photon.ray.d = spec_ray;
-            photon.power = photon.power * collider.material.color;
+            photon.power = photon.power * collider.color;
             self.photon_tracing(photon, depth + 1, func);
         }
         return true;
@@ -48,7 +48,7 @@ impl PhotonTracer {
 
     fn photon_diffusion<F : Copy>(&self, collider : &Collider, mut photon : Photon, depth : u32, prob : &mut f64, func : F) -> bool
         where F : FnMut(Photon) {
-        let eta = collider.material.diffuse * collider.material.color.power();
+        let eta = collider.material.diffuse * collider.color.power();
         if eta < rand::thread_rng().gen_range(0.0, 1.0) * ( *prob) {
             *prob -= eta;
             return false;
@@ -56,7 +56,7 @@ impl PhotonTracer {
 
         if let Some(diff_ray) = collider.get_diffuse_ray() {
             photon.ray.d = diff_ray;
-            photon.power = photon.power * collider.material.color.norm_max();
+            photon.power = photon.power * collider.color.norm_max();
             self.photon_tracing(photon, depth + 1, func);
         }
         return true;
