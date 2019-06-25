@@ -44,4 +44,13 @@ impl Camera {
             d: d.normalize(),
         }
     }
+    
+    pub fn super_emitting(&self, i : usize, j : usize, ii : f64, jj : f64) -> Ray {
+        let d = self.dx.mult((i as f64 + ii) / self.width as f64 - 0.5)
+            + self.dy.mult((j as f64 + jj)  / self.height as f64 - 0.5) + self.direction;
+        Ray {
+            o: self.position + d.mult(1.0),
+            d: d.normalize(),
+        }
+    }
 }

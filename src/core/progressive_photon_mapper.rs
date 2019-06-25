@@ -23,6 +23,8 @@ pub struct ProgressivePhotonTracer {
     photon_map : Kd<f64, Photon, [f64;3]>,   // 光子图
     total_photon : f64, // 发射的总光子数量
     max_radius : f64,
+    hash_table : Vec<u64>,
+    super_sampled : Vec<bool>,
 }
 
 impl ProgressivePhotonTracer {
@@ -38,6 +40,8 @@ impl ProgressivePhotonTracer {
             photon_map : Kd::new(3),
             total_photon : 0.0,
             max_radius : 0.0,
+            hash_table : Vec::new(),
+            super_sampled : Vec::new(),
         }
     }
 
@@ -45,12 +49,45 @@ impl ProgressivePhotonTracer {
         for i in 0..self.width {
             for j in 0..self.height {
                 let ray = self.camera.emitting(i, j);
-                self.trace_ray(&ray, j, i, 1.0, 0, false);
+                let mut hash = 0u64;
+                let idx = j * self.width +  i;
+                self.trace_ray(&ray, idx, 1.0, 0, false, &mut hash);
+                self.hash_table[idx] = hash;
+            }
+        }
+        for i in 0..self.width {
+            for j in 0..self.height {
+                if self.judge_hash(i, j) {
+                    let idx = j * self.width + i;
+                    let mut hash = 0u64;
+                    self.super_sampled[idx] = true;
+                    for ii in 0..9 {
+                        let ray = self.camera.super_emitting(
+                            i, j, (ii % 3) as f64 / 3.0 - 1.0 / 3.0, (ii / 3) as f64 / 3.0 - 1.0 / 3.0);
+                        self.trace_ray(&ray, idx, 1.0, 0, false, &mut hash);
+                    }
+                }
             }
         }
     }
 
-    pub fn trace_ray(&mut self, ray: &Ray, pixel_x: usize, pixel_y: usize, weight : f64, depth : u32, refracted : bool) {
+    fn judge_hash(&self, x : usize, y : usize) -> bool {
+        if x != 0 && self.hash_table[y * self.width + x] != self.hash_table[y * self.width + x - 1] {
+            return true;
+        }
+        if x != self.width - 1 && self.hash_table[y * self.width + x] != self.hash_table[y * self.width + x + 1] {
+            return true;
+        }
+        if y != 0 && self.hash_table[y * self.width + x] != self.hash_table[(y - 1) * self.width + x] {
+            return true;
+        }
+        if y != self.height - 1 && self.hash_table[y * self.width + x] != self.hash_table[(y + 1) * self.width + x] {
+            return true;
+        }
+        false
+    }
+
+    pub fn trace_ray(&mut self, ray: &Ray, pixel_pos: usize, weight : f64, depth : u32, refracted : bool, hash : &mut u64) {
         if depth > 20 { return; }
         let lgt_collider = self.scene.intersect_light(ray);
         let obj_collider = self.scene.intersect(ray);
@@ -59,13 +96,14 @@ impl ProgressivePhotonTracer {
             if lgt_collider.is_some() {
                 let lgt = lgt_collider.unwrap();
                 if lgt.dist < collider.distance { // 光源的交点更近
-                    self.picture[pixel_x * self.camera.width + pixel_y] = lgt.power.mult(0.7);
+                    self.picture[pixel_pos] = lgt.power.mult(0.7);
                     return;
                 }
             }
             if collider.material.is_diffuse() {
+                *hash = *hash * 13 + collider.get_hash();
                 let vp = Arc::new(RefCell::new(
-                    ViewPoint::new(&collider,  pixel_x, pixel_y, weight * collider.material.diffuse)
+                    ViewPoint::new(&collider,  pixel_pos, weight * collider.material.diffuse)
                 ));
                 let mut coord : [f64;3] = [0.0, 0.0, 0.0];
                 coord[0] = collider.pos.x;
@@ -75,24 +113,26 @@ impl ProgressivePhotonTracer {
                 self.points.push(vp);
             }
             if collider.material.is_specular() {
+                *hash = *hash * 17 + collider.get_hash();
                 let spec_ray = Ray::new(
                     collider.pos,
                     collider.material.cal_specular_ray(&ray.d, &collider.norm_vec).unwrap()
                 );
-                self.trace_ray(&spec_ray, pixel_x, pixel_y, weight * collider.material.specular, depth + 1, refracted);
+                self.trace_ray(&spec_ray, pixel_pos, weight * collider.material.specular, depth + 1, refracted, hash);
             }
             if collider.material.is_refractive() {
+                *hash = *hash * 19 + collider.get_hash();
                 if let Some(dir) = collider.material.cal_refractive_ray(&ray.d, &collider.norm_vec, refracted) {
                     let spec_ray = Ray::new(
                         collider.pos,
                         dir
                     );
-                    self.trace_ray(&spec_ray, pixel_x, pixel_y, weight * collider.material.refraction, depth + 1, !refracted);
+                    self.trace_ray(&spec_ray, pixel_pos, weight * collider.material.refraction, depth + 1, !refracted, hash);
                 }
             }
         } else if lgt_collider.is_some() {  // 只与光源相交
             let lgt = lgt_collider.unwrap();
-            self.picture[pixel_x * self.camera.width + pixel_y] = lgt.power.mult(0.7);
+            self.picture[pixel_pos] = lgt.power.mult(0.7);
         }
     }
 
@@ -100,8 +140,12 @@ impl ProgressivePhotonTracer {
         self.width = self.camera.width;
         self.height = self.camera.height;
         self.picture.resize((self.width * self.height) as usize, Color::default());
+        self.hash_table.resize((self.width * self.height) as usize, 0u64);
+        self.super_sampled.resize((self.width * self.height) as usize, false);
 
         self.ray_tracing_pass(); // 从眼睛发射光线
+
+        info!("sampling over!");
         
         self.cal_hp_radius();
 
@@ -217,19 +261,21 @@ impl ProgressivePhotonTracer {
         for vp_ptr in self.points.iter() {
             let vp = vp_ptr.borrow();
             let to_div = std::f64::consts::PI * self.total_photon * vp.radius2;
-            self.picture[vp.x * self.width + vp.y] += vp.flux_color.div(to_div); //TODO !!!
-            if vp.x == 315 && vp.y == 512 {
-                error!("{:?} {:?}", vp.flux_color, vp.flux_color.div(to_div));
-            }
+            self.picture[vp.px_pos] += vp.flux_color.div(to_div); 
         }
 
         //将结果写入png
         for i in 0..self.width {
             for j in 0..self.height {
-                let (r, g, b) = self.picture[j * self.width + i].to_u8();
-                buffer[(j * self.width + i) * 3] = r;
-                buffer[(j * self.width + i) * 3 + 1] = g;
-                buffer[(j * self.width + i) * 3 + 2] = b;
+                let idx = j * self.width + i;
+                let mut res = self.picture[idx];
+                if self.super_sampled[idx] {
+                    res = res.mult(0.1);
+                }
+                let (r, g, b) = res.to_u8();
+                buffer[idx * 3] = r;
+                buffer[idx * 3 + 1] = g;
+                buffer[idx * 3 + 2] = b;
             }
         }
         let path = &Path::new("result.png");

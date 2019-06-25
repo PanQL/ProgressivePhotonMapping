@@ -55,7 +55,9 @@ impl Light for AreaLight {
         let mut z : f64 = 0.0;
         loop {
             if x * x + y * y + z * z < 1.0 && x * x + y * y > 1e-10 {
-                break;
+                if Vector3::new(x, y, z).dot(&self.dir) > 1e-10 {
+                    break;
+                }
             }
             x = rng.gen_range(-1.0, 1.0);
             y = rng.gen_range(-1.0, 1.0);

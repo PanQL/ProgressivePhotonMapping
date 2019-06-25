@@ -1,5 +1,5 @@
-use super::*;
 use super::material::*;
+use crate::util::*;
 use std::sync::Arc;
 use crate::consts::EPS;
 
@@ -8,12 +8,14 @@ pub trait Primitive {
     fn get_normal_vec(&self, pos : &Vector3) -> Vector3;
     fn get_color(&self) -> Color;
     fn get_material(&self) -> Arc<Material>;
+    fn get_hash(&self) -> u64;
 }
 
 pub struct Sphere {
     pub radius : f64,
     pub position : Vector3,
     pub material : Arc<Material>,
+    hash_value : u64,
 }
 
 impl Primitive for Sphere {
@@ -48,14 +50,19 @@ impl Primitive for Sphere {
     fn get_material(&self) -> Arc<Material>{
         self.material.clone()
     }
+
+    fn get_hash(&self) -> u64 {
+        self.hash_value
+    }
 }
 
 impl Sphere {
-    pub fn new(radius : f64, position : Vector3, material : Arc<Material>) -> Self {
+    pub fn new(id : u32, radius : f64, position : Vector3, material : Arc<Material>) -> Self {
         Sphere{ 
             radius, 
             position, 
             material,
+            hash_value : calculate_hash(&id),
         }
     }
 }
@@ -64,6 +71,7 @@ pub struct Plane {
     direction : Vector3,
     distance : f64,
     material : Arc<Material>,
+    hash_value : u64,
 }
 
 impl Primitive for Plane {
@@ -91,10 +99,14 @@ impl Primitive for Plane {
     fn get_material(&self) -> Arc<Material> {
         self.material.clone()
     }
+
+    fn get_hash(&self) -> u64 {
+        self.hash_value
+    }
 }
 
 impl Plane {
-    pub fn new(direction : Vector3, distance : f64, material : Arc<Material>) -> Self {
-        Plane { direction : direction.normalize(), distance , material, }
+    pub fn new(id : usize, direction : Vector3, distance : f64, material : Arc<Material>) -> Self {
+        Plane { direction : direction.normalize(), distance , material, hash_value : calculate_hash(&id) }
     }
 }

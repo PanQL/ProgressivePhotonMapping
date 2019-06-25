@@ -8,6 +8,7 @@ pub struct Collider {
     pub norm_vec : Vector3,
     pub distance : f64,
     pub in_direction : Vector3,
+    pub hash_value : u64,
 }
 
 impl Collider {
@@ -23,6 +24,9 @@ impl Collider {
         self.material.cal_refractive_ray(&self.in_direction, &self.norm_vec, refracted)
     }
 
+    pub fn get_hash(&self) -> u64 {
+        self.hash_value
+    }
 }
 
 pub struct LightCollider {
