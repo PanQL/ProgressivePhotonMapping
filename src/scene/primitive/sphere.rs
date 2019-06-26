@@ -28,7 +28,7 @@ impl Primitive for Sphere {
 
     fn get_normal_vec(&self, pos : &Vector3) -> Vector3 {
         let ret = *pos - self.position;
-        if !ret.is_zero_vec() { return ret.normalize(); }
+        if !ret.is_zero() { return ret.normalize(); }
         ret
     }
 

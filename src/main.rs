@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 #[macro_use] extern crate log;
 extern crate env_logger;
 
@@ -14,13 +15,13 @@ fn main() {
 
     info!("Hello, world!");
 
-    //let mut scene = Scene::new();
-    //scene.init();
-    //let mut camera = Camera::new();
-    //camera.set_size(1024, 768);
-    //camera.set_pos(&Vector3::new(6000.0, 5000.0, 400.0));
-    //camera.set_dir(Vector3::new(-1.0, 0.0, 0.0));
-    //let mut render = Render::new(camera, scene);
-    //render.run_ppm(10);
-    BazierCurve::new().test();
+    let mut scene = Scene::new();
+    scene.init();
+    let mut camera = Camera::new();
+    camera.set_size(1920, 1080);
+    camera.set_pos(&Vector3::new(6000.0, 5000.0, 400.0));
+    camera.set_dir(Vector3::new(-1.0, 0.0, 0.0));
+    let mut render = Render::new(camera, scene);
+    render.run_ppm(10);
+    //BazierCurve::new().test();
 }

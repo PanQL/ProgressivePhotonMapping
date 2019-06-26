@@ -257,7 +257,7 @@ impl ProgressivePhotonTracer {
     }
 
     fn gen_png(&mut self) {
-        let buffer: &mut [u8] = &mut vec![0; 1024 * 768 * 3];
+        let buffer: &mut [u8] = &mut vec![0; self.width * self.height * 3];
         for vp_ptr in self.points.iter() {
             let vp = vp_ptr.borrow();
             let to_div = std::f64::consts::PI * self.total_photon * vp.radius2;
@@ -279,8 +279,8 @@ impl ProgressivePhotonTracer {
             }
         }
         let path = &Path::new("result.png");
-        if let Err(_e) = lodepng::encode24_file(path, buffer, 1024, 768) {
-            panic!("encode error!");
+        if let Err(_e) = lodepng::encode_file(path, buffer, self.width, self.height, lodepng::ColorType::RGB, 8) {
+            panic!("encode error! {} ", _e);
         }
     }
 

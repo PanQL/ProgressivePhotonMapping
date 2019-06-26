@@ -1,4 +1,4 @@
-use super::{Ray, Vector3, color::Color, collision::Collider};
+use super::{Ray, Vector3, MyVector3, color::Color, collision::Collider};
 use crate::scene::material::Material;
 use crate::consts::*;
 use std::sync::Arc;
