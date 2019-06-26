@@ -1,4 +1,4 @@
-mod primitive;
+pub mod primitive;
 mod light;
 pub mod material;
 
