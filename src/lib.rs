@@ -7,6 +7,7 @@ extern crate env_logger;
 extern crate lodepng;
 extern crate rgb;
 extern crate nalgebra;
+extern crate rand;
 pub mod util;
 pub mod scene;
 pub mod camera;

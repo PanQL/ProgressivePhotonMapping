@@ -13,7 +13,6 @@ use std::sync::{ Arc, Mutex, mpsc::channel };
 use std::boxed::Box;
 use std::thread::spawn;
 use kdtree::kdtree::KdTree as Kd;
-extern crate rand;
 pub use rand::Rng;
 
 struct RenderInner {

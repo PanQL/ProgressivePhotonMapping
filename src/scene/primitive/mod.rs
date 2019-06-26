@@ -7,6 +7,7 @@ pub use crate::util::*;
 pub use std::sync::Arc;
 pub use crate::consts::EPS;
 pub use rgb::*;
+pub use std::f64::consts::PI;
 
 pub use sphere::Sphere;
 pub use plane::Plane;
