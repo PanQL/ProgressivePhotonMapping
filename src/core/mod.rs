@@ -45,7 +45,7 @@ impl RenderInner {
             hit_point_map : Arc::new(Mutex::new(Kd::new(3))),
             points : Arc::new(Vec::new()),
             photon_map : Arc::new(Mutex::new(Kd::new(3))),
-            photon_tracer : Arc::new(PhotonTracer::new(scene.clone())),
+            photon_tracer : Arc::new(PhotonTracer::new(scene.clone(), Arc::new(Kd::new(3)), 1.0)),
             ray_tracer : RayTracer::new(scene.clone()),
             picture : Arc::new(Mutex::new(picture)),
             path_tracer : Arc::new(PathTracer::new(scene))
@@ -89,22 +89,22 @@ impl RenderInner {
 
     // 光子发射阶段
     pub fn photon_tracing(&self, photon_number : usize) {
-        let f = |photon : Photon|{  // 光子发射阶段，当光子碰撞到漫反射面时，应该执行的操作。
-            let mut coord : [f64;3] = [0.0, 0.0, 0.0];
-            coord[0] = photon.ray.o.x;
-            coord[1] = photon.ray.o.y;
-            coord[2] = photon.ray.o.z;
-            if let Ok(mut p_map) = self.photon_map.lock() {
-                p_map.add(coord, photon).unwrap();
-            }
-        };
-        let number = self.scene.get_light_num();
-        for i in 0..number {    // 按照光源顺序不断发射光子
-            let illumiant = self.scene.get_light(i);
-            for _ in 0..photon_number {
-                self.photon_tracer.photon_tracing(illumiant.gen_photon(), 0, f);
-            }
-        }
+        //let f = |photon : Photon|{  // 光子发射阶段，当光子碰撞到漫反射面时，应该执行的操作。
+            //let mut coord : [f64;3] = [0.0, 0.0, 0.0];
+            //coord[0] = photon.ray.o.x;
+            //coord[1] = photon.ray.o.y;
+            //coord[2] = photon.ray.o.z;
+            //if let Ok(mut p_map) = self.photon_map.lock() {
+                //p_map.add(coord, photon).unwrap();
+            //}
+        //};
+        //let number = self.scene.get_light_num();
+        //for i in 0..number {    // 按照光源顺序不断发射光子
+            //let illumiant = self.scene.get_light(i);
+            //for _ in 0..photon_number {
+                //self.photon_tracer.photon_tracing(illumiant.gen_photon(), 0, f);
+            //}
+        //}
     }
 
     pub fn run_pt_thread(&self, sampling : u32) {
@@ -206,7 +206,7 @@ impl Render {
         self.gen_png();
     }
 
-    pub fn run_ppm(&mut self, times : usize) {
-        self.ppm.run(times);
+    pub fn run_ppm(&mut self, times : usize, threads : usize) {
+        self.ppm.run(times, threads);
     }
 }
