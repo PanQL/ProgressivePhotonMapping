@@ -95,7 +95,8 @@ impl PhotonTracer {
         let number = self.scene.get_light_num();
         for i in 0..number {
             let illumiant = self.scene.get_light(i);
-            for _ in 0..photon_number {
+            for j in 0..photon_number {
+                info!("{} photons ", j);
                 let mut photon = illumiant.gen_photon();
                 photon.power = photon.power.mult(power);
                 self.photon_tracing(photon, 0, false);

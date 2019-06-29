@@ -62,23 +62,28 @@ impl Scene {
             Arc::new(Material::new(Color::new(0.75, 0.75, 0.75), 1.0, 0.0, 0.0, 2.0)),
             None,
         )));
-        self.objects.push(Box::new(Sphere::new(
-            6,
-            120.0,
-            Vector3::new(5000.0, 5000.0, 300.0),
-            Arc::new(Material::new(Color::new(0.75, 0.25, 0.25), 1.0, 0.0, 0.0, 1.2)),
-        )));
-        self.objects.push(Box::new(Sphere::new(
-            7,
-            100.0,
-            Vector3::new(5100.0, 5300.0, 200.0),
-            Arc::new(Material::new(Color::new(0.99, 0.99, 0.99), 0.2, 0.0, 0.8, 1.3)),
-        )));
-        self.objects.push(Box::new(Sphere::new(
-            8,
-            100.0,
-            Vector3::new(5100.0, 4700.0, 200.0),
-            Arc::new(Material::new(Color::new(0.25, 0.75, 0.25), 0.2, 0.8, 0.0, 1.3)),
+        //self.objects.push(Box::new(Sphere::new(
+            //6,
+            //120.0,
+            //Vector3::new(5000.0, 5000.0, 300.0),
+            //Arc::new(Material::new(Color::new(0.75, 0.25, 0.25), 1.0, 0.0, 0.0, 1.2)),
+        //)));
+        //self.objects.push(Box::new(Sphere::new(
+            //7,
+            //100.0,
+            //Vector3::new(5100.0, 5300.0, 200.0),
+            //Arc::new(Material::new(Color::new(0.99, 0.99, 0.99), 0.2, 0.0, 0.8, 1.3)),
+        //)));
+        //self.objects.push(Box::new(Sphere::new(
+            //8,
+            //100.0,
+            //Vector3::new(5100.0, 4700.0, 200.0),
+            //Arc::new(Material::new(Color::new(0.25, 0.75, 0.25), 0.2, 0.8, 0.0, 1.3)),
+        //)));
+        self.objects.push(Box::new(BazierCurve::new(
+            9,
+            Vector3::new(5000.0, 5000.0, 200.0),
+            Arc::new(Material::new(Color::new(0.25, 0.75, 0.25), 1.0, 0.0, 0.0, 1.3))
         )));
         // 设置光源
         self.illumiants.push(Arc::new(AreaLight::new(

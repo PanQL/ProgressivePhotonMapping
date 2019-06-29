@@ -2,16 +2,15 @@ use super::*;
 use nalgebra::base::Matrix3;
 use nalgebra::base::Vector3 as V3;
 use rand::Rng;
-use std::rc::Rc;
-use std::cell::RefCell;
+use spin::Mutex;
 
 pub struct BazierCurve {
     position : Vector3, // 位置
     hash_value : u64,
     material : Arc<Material>,   // 材质
-    n_vec : Rc<RefCell<Vector3>>,    // 最近一次碰撞处的法向量
-    px : Vec<f64>,
+    n_vec : Arc<Mutex<Vector3>>,    // 最近一次碰撞处的法向量
     py : Vec<f64>,
+    pz : Vec<f64>,
     maxX : f64,
     minX : f64,
     maxR : f64,
@@ -20,16 +19,16 @@ pub struct BazierCurve {
 
 impl BazierCurve {
     // TODO
-    pub fn new(position : Vector3, material : Arc<Material>) -> Self{
+    pub fn new(id : usize, position : Vector3, material : Arc<Material>) -> Self{
         BazierCurve {
             position,
-            hash_value : 0u64,
+            hash_value : calculate_hash(&id),
             material,
-            n_vec : Rc::new(RefCell::new(Vector3::zero())),
-            px : vec![10.0f64, 2.0f64, 3.0f64, 4.0f64],
-            py : vec![10.0f64, 2.0f64, 3.0f64, 4.0f64],
-            maxX : 1e-20,
-            minX : 1e20,
+            n_vec : Arc::new(Mutex::new(Vector3::zero())),
+            py : vec![0.0f64, 100.0f64, 300.0f64, 0.0f64],
+            pz : vec![0.0f64, 100.0f64, 300.0f64, 400.0f64],
+            maxX : 400.0f64,
+            minX : 0.0f64,
             maxR : 1e-20,
             minR : 1e20,
         }
@@ -39,7 +38,6 @@ impl BazierCurve {
         let matrix = Matrix3::new(1.0f64, 1.0f64, 1.0f64,
                                   1.0f64, 1.0f64, 1.0f64,
                                   1.0f64, 1.0f64, 1.0f64);
-        //info!("{:?}", matrix.pseudo_inverse(1e-20));
         let v3 = V3::new(0.1f64, 0.2f64, 0.3f64);
         let v31 = V3::new(0.1f64, 0.2f64, 0.3f64);
         info!("{:?} {} {} {}", matrix * v3, v3.x, v3.y, v3.z);
@@ -72,37 +70,39 @@ impl BazierCurve {
 
     // 给定t计算射线上的点
     fn get_c(&self, ray : &Ray, t : f64) -> Vector3 {
-        if t < 0.0 { error!("t should not be 0.0"); }
         ray.o + ray.d.mult(t)
     }
 
     // 给定u和theta计算旋转体方程的值
-    fn get_s(&self, u : f64, theta : f64) -> Vector3 {
-        Vector3::new(self.get_p(&self.py, u), theta.sin() * self.get_p(&self.px, u), theta.cos() * self.get_p(&self.px, u))
+    fn get_s(&self, u : f64, theta : f64) -> Vector3 {  // TOFIXME
+        Vector3::new(self.position.x - theta.sin() * self.get_p(&self.py, u), 
+                     self.position.y + theta.cos() * self.get_p(&self.py, u), 
+                     self.position.z  + self.get_p(&self.pz, u))
     }
 
     fn get_f(&self, t : f64, u : f64, theta : f64, ray : &Ray) -> Vector3 {
-        self.get_c(ray, t) - self.get_s(u, theta)
+        let c = self.get_c(ray, t);
+        let s = self.get_s(u, theta);
+        c - s
     }
 
     fn getd_f(&self, u : f64, theta : f64, ray : &Ray) -> Matrix3<f64> {
-        Matrix3::new(ray.d.x, -self.getd_p(&self.py, u), 0.0,
-                    ray.d.y, -theta.sin() * self.getd_p(&self.px, u), -theta.cos() * self.get_p(&self.px, u),
-                    ray.d.z, -theta.cos() * self.getd_p(&self.px, u), theta.sin() * self.get_p(&self.px, u)
-                    )
+        Matrix3::new(ray.d.x, theta.sin() * self.getd_p(&self.py, u), theta.cos() * self.get_p(&self.py, u),
+                    ray.d.y, -theta.cos() * self.getd_p(&self.py, u), theta.sin() * self.get_p(&self.py, u),
+                    ray.d.z, -self.getd_p(&self.pz, u), 0.0)
     }
 
     /*
      * args : ( t, u, theta) 代表曲面求交方程的三个自变量
      */
-    fn init_args(&self, dir : &Vector3, args : &mut Vector3) {
+    fn init_args(&self, ray : &Ray, args : &mut Vector3) {
         let mut rng = rand::thread_rng();
 
         let u = rng.gen_range(0.0, 1.0);    // 曲线参数初始化时随机在[0.0,1.0]取值
         let theta = rng.gen_range(0.0, 2.0 * PI); // 旋转角度也是随机取值，取值范围[0, 2pi]
 
         let h = rng.gen_range(self.minX, self.maxX);
-        let t = ((self.position.x + h) - dir.x) / dir.x;
+        let t = ( self.position + Vector3::new(0.0, 0.0, 1.0).mult(h) ).distance(&ray.o);
         args.x = t;
         args.y = u;
         args.z = theta;
@@ -113,24 +113,24 @@ impl Primitive for BazierCurve {
     fn intersect(&self, r : &Ray) -> Option<f64> {
         let mut dist = 1e100;
         let lr : f64 = 0.7; // 衰减系数
-        for cnt in 0..35 {
+        for _ in 0..35 {
             // 初始化各项参数
             let mut args = Vector3::new(0.0, 0.0, 0.0);
-            self.init_args(&r.d, &mut args);
+            self.init_args(r, &mut args);
             let mut flag : bool = false;
-            for i in 0..20 {
+            for _ in 0..20 {    // 牛顿迭代过程
                 let t = args.x;
                 let u = args.y;
                 let theta = args.z;
-                if u < 0.5 || u > 1.5 { break; }
                 let F = self.get_f(t, u, theta, r); // 得到向量
                 let dF = self.getd_f(u, theta, r);   // 得到矩阵
 
-                let (_, max) = F.argmax();
+                let max = F.x.abs().max(F.y.abs().max(F.z.abs()));
                 if max < 1e-7 {
                     flag = true;
                     break;
                 }
+                // TODO
                 if let Ok(inverse_df) = dF.pseudo_inverse(1e-20) {
                     args = args - ( inverse_df * F) * lr;
                 } else {
@@ -141,16 +141,25 @@ impl Primitive for BazierCurve {
             if args.x < 0.0 { continue; }
             if args.y < 0.0 || args.y > 1.0 { continue; }
             if args.x > dist { continue; }
+            let t = args.x;
+            let u = args.y;
+            let theta = args.z;
             dist = args.x;  // 将t作为距离
             // TODO 更新法向量
+            let pspu = Vector3::new(-theta.sin() * self.getd_p(&self.py, u), theta.cos() * self.getd_p(&self.py, u), self.getd_p(&self.pz, u)); 
+            let pspt = Vector3::new(theta.cos() * self.get_p(&self.py, u), -theta.sin() * self.get_p(&self.py, u), 0.0);
 
+            let mut vec = self.n_vec.lock();
+            *vec = pspu.cross(&pspt).normalize();
+        }
+        if dist < 1e90 {
             return Some(dist);
         }
         None
     }
 
     fn get_normal_vec(&self, _ : &Vector3) -> Vector3 {
-        self.n_vec.borrow().clone()
+        self.n_vec.as_ref().lock().clone()
     }
 
     fn get_material(&self) -> Arc<Material> {

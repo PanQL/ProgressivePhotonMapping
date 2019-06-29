@@ -18,9 +18,9 @@ fn main() {
     let mut scene = Scene::new();
     scene.init();
     let mut camera = Camera::new();
-    camera.set_size(1920, 1080);
+    camera.set_size(512, 384);
     camera.set_pos(&Vector3::new(6000.0, 5000.0, 400.0));
     camera.set_dir(Vector3::new(-1.0, 0.0, 0.0));
     let mut render = Render::new(camera, scene);
-    render.run_ppm(10, 4);
+    render.run_ppm(1, 4);
 }

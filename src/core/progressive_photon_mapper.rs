@@ -3,12 +3,10 @@ use crate::util::*;
 use crate::camera::Camera;
 use crate::consts::EPS;
 use std::vec::Vec;
-use std::cell::RefCell;
 use std::sync::{ Arc, mpsc::channel };
 use std::path::Path;
 use kdtree::kdtree::KdTree as Kd;
 use kdtree::distance::squared_euclidean;
-use rand::Rng;
 use super::PhotonTracer;
 use std::thread::spawn;
 use spin::Mutex;
@@ -55,6 +53,7 @@ impl ProgressivePhotonTracer {
                 let idx = j * self.width +  i;
                 self.trace_ray(&ray, idx, 1.0, 0, false, &mut hash);
                 self.hash_table[idx] = hash;
+                info!("{} {}", i, j);
             }
         }
         for i in 0..self.width {
@@ -196,7 +195,6 @@ impl ProgressivePhotonTracer {
         info!("{:?}, {:?}", max, min);
         let irad = (((max.x - min.x) + (max.y - min.y) + (max.z - min.z)) / 3.0) / ((self.width + self.height) as f64 / 2.0) * 2.0;
         for vp_ptr in self.points.iter_mut() {
-            //vp.radius2 = irad * irad;
             let mut vp =  vp_ptr.lock();
             vp.radius2 = irad * irad;
         }
