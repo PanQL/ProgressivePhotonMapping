@@ -13,8 +13,6 @@ use std::sync::{ Arc, Mutex, mpsc::channel };
 use std::boxed::Box;
 use std::thread::spawn;
 use kdtree::kdtree::KdTree as Kd;
-use kdtree::distance::squared_euclidean;
-extern crate rand;
 pub use rand::Rng;
 
 struct RenderInner {
@@ -37,7 +35,7 @@ impl RenderInner {
         let width = camera.width;
         let height = camera.height;
         let mut picture = Vec::<Color>::new();
-        picture.resize_default(camera.width * camera.height);
+        picture.resize(camera.width * camera.height, Color::default());
         RenderInner{
             //class : TraceType::PPM,
             camera,
@@ -47,7 +45,7 @@ impl RenderInner {
             hit_point_map : Arc::new(Mutex::new(Kd::new(3))),
             points : Arc::new(Vec::new()),
             photon_map : Arc::new(Mutex::new(Kd::new(3))),
-            photon_tracer : Arc::new(PhotonTracer::new(scene.clone())),
+            photon_tracer : Arc::new(PhotonTracer::new(scene.clone(), Arc::new(Kd::new(3)), 1.0)),
             ray_tracer : RayTracer::new(scene.clone()),
             picture : Arc::new(Mutex::new(picture)),
             path_tracer : Arc::new(PathTracer::new(scene))
@@ -56,61 +54,61 @@ impl RenderInner {
 
     // 光线追踪阶段
     pub fn ray_tarcing(&self, sampling : usize) {
-        let f = | collider : &Collider| -> Color{
-            let mut ret = Color::default();
-            if let Ok(photon_map) = self.photon_map.lock() {
-                let mut coord : [f64;3] = [0.0, 0.0, 0.0];
-                coord[0] = collider.pos.x;
-                coord[1] = collider.pos.y;
-                coord[2] = collider.pos.z;
-                let result = photon_map.within(&coord, 1.0, &squared_euclidean).unwrap();
-                for (_, photon) in result.iter() {
-                    ret += photon.power;
-                }
-                if !result.is_empty() { ret.div(result.len() as f64); }
-            }
-            ret
-        };
-        let sampling2 : f64 = (sampling * sampling) as f64;
-        for i in 0..self.width {
-            for j in 0..self.height {
-                let ray = self.camera.emitting(i, j);
-                let dx = ray.d.get_vertical_vec();
-                let dy = dx.cross(&ray.d);
-                for x in 0..sampling {
-                    for y in 0..sampling {
-                        let a_vec = ray.d + dx.mult(x as f64 / sampling as f64 - 0.5).mult(0.001) 
-                            + dy.mult(y as f64 / sampling as f64 - 0.5).mult(0.001);
-                        let a_ray = Ray { o : ray.o, d : a_vec };
+        //let f = | collider : &Collider| -> Color{
+            //let mut ret = Color::default();
+            //if let Ok(photon_map) = self.photon_map.lock() {
+                //let mut coord : [f64;3] = [0.0, 0.0, 0.0];
+                //coord[0] = collider.pos.x;
+                //coord[1] = collider.pos.y;
+                //coord[2] = collider.pos.z;
+                //let result = photon_map.within(&coord, 1.0, &squared_euclidean).unwrap();
+                //for (_, photon) in result.iter() {
+                    //ret += photon.power;
+                //}
+                //if !result.is_empty() { ret.div(result.len() as f64); }
+            //}
+            //ret
+        //};
+        //let sampling2 : f64 = (sampling * sampling) as f64;
+        //for i in 0..self.width {
+            //for j in 0..self.height {
+                //let ray = self.camera.emitting(i, j);
+                //let dx = ray.d.get_vertical_vec();
+                //let dy = dx.cross(&ray.d);
+                //for x in 0..sampling {
+                    //for y in 0..sampling {
+                        //let a_vec = ray.d + dx.mult(x as f64 / sampling as f64 - 0.5).mult(0.001) 
+                            //+ dy.mult(y as f64 / sampling as f64 - 0.5).mult(0.001);
+                        //let a_ray = Ray { o : ray.o, d : a_vec };
                         //picture[j * self.width + i] += self.ray_tracer.trace_ray(&a_ray, 1.0, 0, f).div(sampling2);
-                    }
-                }
-            }
-        }
+                    //}
+                //}
+            //}
+        //}
     }
 
     // 光子发射阶段
     pub fn photon_tracing(&self, photon_number : usize) {
-        let f = |photon : Photon|{  // 光子发射阶段，当光子碰撞到漫反射面时，应该执行的操作。
-            let mut coord : [f64;3] = [0.0, 0.0, 0.0];
-            coord[0] = photon.ray.o.x;
-            coord[1] = photon.ray.o.y;
-            coord[2] = photon.ray.o.z;
-            if let Ok(mut p_map) = self.photon_map.lock() {
-                p_map.add(coord, photon).unwrap();
-            }
-        };
-        let number = self.scene.get_light_num();
-        for i in 0..number {    // 按照光源顺序不断发射光子
-            let illumiant = self.scene.get_light(i);
-            for _ in 0..photon_number {
-                self.photon_tracer.photon_tracing(illumiant.gen_photon(), 0, f);
-            }
-        }
+        //let f = |photon : Photon|{  // 光子发射阶段，当光子碰撞到漫反射面时，应该执行的操作。
+            //let mut coord : [f64;3] = [0.0, 0.0, 0.0];
+            //coord[0] = photon.ray.o.x;
+            //coord[1] = photon.ray.o.y;
+            //coord[2] = photon.ray.o.z;
+            //if let Ok(mut p_map) = self.photon_map.lock() {
+                //p_map.add(coord, photon).unwrap();
+            //}
+        //};
+        //let number = self.scene.get_light_num();
+        //for i in 0..number {    // 按照光源顺序不断发射光子
+            //let illumiant = self.scene.get_light(i);
+            //for _ in 0..photon_number {
+                //self.photon_tracer.photon_tracing(illumiant.gen_photon(), 0, f);
+            //}
+        //}
     }
 
     pub fn run_pt_thread(&self, sampling : u32) {
-        let sampling2 : f64 = (sampling * sampling) as f64;
+        let mut temp_res = vec![Color::default();self.camera.width * self.camera.height];
         for i in 0..self.camera.width {
             for j in 0..self.camera.height {
                 let ray = self.camera.emitting(i, j);
@@ -123,10 +121,15 @@ impl RenderInner {
                     let a_ray = Ray { o : ray.o, d : a_vec };
                     res += self.path_tracer.trace_ray(&a_ray, 1.0, 0).div(sampling as f64);
                 }
-                if let Ok(mut picture) = self.picture.lock() {
-                    picture[j * self.width + i] += res;
-                }
+                temp_res[j * self.camera.width + i] = res;
                 info!("{} {} pixel", i, j);
+            }
+        }
+        if let Ok(mut picture) = self.picture.lock() {
+            for i in 0..self.camera.width {
+                for j in 0..self.camera.height {
+                    picture[j * self.width + i] += temp_res[j * self.width + i];
+                }
             }
         }
     }
@@ -177,18 +180,12 @@ impl Render {
         if let Ok(pic) = self.inner.picture.lock() {
             for i in 0..width {
                 for j in 0..height {
-                    //let (r, g, b) = self.picture[j * width + i].to_u16();
                     let (r, g, b) = pic[j * width + i].to_u16();
                     buffer[(j * width + i) * 3] = r;
                     buffer[(j * width + i) * 3 + 1] = g;
                     buffer[(j * width + i) * 3 + 2] = b;
                 }
             }
-        }
-        unsafe {
-            image::save_buffer("result.png", 
-                               std::slice::from_raw_parts_mut(buffer.as_mut_ptr() as *mut u8, buffer.len() * 2),
-                               width as u32, height as u32, image::RGB(16)).unwrap()
         }
     }
 
@@ -209,7 +206,7 @@ impl Render {
         self.gen_png();
     }
 
-    pub fn run_ppm(&mut self, times : usize) {
-        self.ppm.run(times);
+    pub fn run_ppm(&mut self, times : usize, threads : usize) {
+        self.ppm.run(times, threads);
     }
 }

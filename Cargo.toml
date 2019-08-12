@@ -7,9 +7,12 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-image = "0.18.0"
 rand = "0.6.5"
 log = "0.4.0"
 env_logger = "0.6.1"
-png = "0.14.0"
 kdtree = "0.5.1"
+lodepng = "2.4.2"
+rgb = "0.8"
+nalgebra = "0.18.0"
+num-traits = "0.2.8"
+spin = "0.5.0"
